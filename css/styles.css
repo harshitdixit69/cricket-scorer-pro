@@ -1320,6 +1320,7 @@ body {
 body.spectator-view .keypad-card,
 body.spectator-view .keypad-grid,
 body.spectator-view .pad-actions-row,
+body.spectator-view .quick-bowler-strip,
 body.spectator-view #swap-striker-btn,
 body.spectator-view #quick-change-bowler-btn,
 body.spectator-view #undo-header-btn,

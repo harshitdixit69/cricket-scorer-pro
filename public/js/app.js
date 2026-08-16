@@ -35,6 +35,8 @@ import {
   getActiveBroadcastId,
   setActiveBroadcastId,
   onConnectionStatusChange,
+  createHostMatch,
+  getMatchPin,
   getOrSetMatchPin,
   isDeviceAuthorizedScorer,
   verifyAndAuthorizeScorer,
@@ -189,6 +191,13 @@ $('start-btn').addEventListener('click', () => {
   const squadA = squadAText ? squadAText.split(',').map(s => s.trim()).filter(Boolean) : [];
   const squadB = squadBText ? squadBText.split(',').map(s => s.trim()).filter(Boolean) : [];
 
+  // Generate new Match ID and establish host authority on this device
+  activeBroadcastMatchId = generateMatchId();
+  setActiveBroadcastId(activeBroadcastMatchId);
+  createHostMatch(activeBroadcastMatchId);
+  isSpectatorMode = false;
+  document.body.classList.remove('spectator-view');
+
   store.dispatch(actions.startMatch({
     teamA,
     teamB,
@@ -261,6 +270,11 @@ $('start-scoring-btn').addEventListener('click', () => {
 // ─── Keypad Scoring Grid Handlers ───────────────────────────────────
 $$('.pad-btn').forEach(btn => {
   btn.addEventListener('click', () => {
+    if (isSpectatorMode) {
+      alert('🔒 You are viewing in Spectator Mode. Enter the 4-digit Scorer PIN to unlock scoring.');
+      return;
+    }
+
     const actionType = btn.dataset.action;
     const runs = parseInt(btn.dataset.val, 10);
 
@@ -284,21 +298,25 @@ $$('.pad-btn').forEach(btn => {
 
 // ─── Secondary Scoring Action Buttons ───────────────────────────────
 $('pad-swap-strike-btn').addEventListener('click', () => {
+  if (isSpectatorMode) return;
   store.dispatch(actions.swapStrike());
   sound.playDot();
 });
 
 $('pad-undo-btn').addEventListener('click', () => {
+  if (isSpectatorMode) return;
   store.dispatch(actions.undoLast());
   sound.playDot();
 });
 
 $('undo-header-btn').addEventListener('click', () => {
+  if (isSpectatorMode) return;
   store.dispatch(actions.undoLast());
   sound.playDot();
 });
 
 $('redo-header-btn').addEventListener('click', () => {
+  if (isSpectatorMode) return;
   store.dispatch(actions.redoLast());
   sound.playDot();
 });
@@ -309,7 +327,14 @@ $('sound-toggle-btn').addEventListener('click', () => {
 });
 
 $('reset-btn').addEventListener('click', () => {
+  if (isSpectatorMode) return;
   if (confirm('Start a new match? Current ongoing match will be reset.')) {
+    broadcastMatchEnded(activeBroadcastMatchId);
+    activeBroadcastMatchId = generateMatchId();
+    setActiveBroadcastId(activeBroadcastMatchId);
+    createHostMatch(activeBroadcastMatchId);
+    isSpectatorMode = false;
+    document.body.classList.remove('spectator-view');
     store.dispatch(actions.resetMatch());
   }
 });
@@ -319,6 +344,11 @@ let selectedDismissalType = 'Bowled';
 let runOutTarget = 'striker';
 
 $('pad-wicket-btn').addEventListener('click', () => {
+  if (isSpectatorMode) {
+    alert('🔒 You are viewing in Spectator Mode. Enter the 4-digit Scorer PIN to unlock scoring.');
+    return;
+  }
+
   const state = store.getState();
   const battingKey = state.currentInnings === 1 ? state.battingFirst : state.bowlingFirst;
   const battingTeam = state.teams[battingKey];
@@ -378,6 +408,7 @@ $('runout-nonstriker-btn').addEventListener('click', () => {
 $('cancel-wicket-btn').addEventListener('click', () => closeModal('wicket-modal'));
 
 $('confirm-wicket-btn').addEventListener('click', () => {
+  if (isSpectatorMode) return;
   const state = store.getState();
   let dismissedBatter = state.currentStriker;
   if (selectedDismissalType === 'Run Out' && runOutTarget === 'nonstriker') {
@@ -411,6 +442,10 @@ let selectedExtraType = 'WIDE';
 let selectedExtraRuns = 1;
 
 $('pad-extras-btn').addEventListener('click', () => {
+  if (isSpectatorMode) {
+    alert('🔒 You are viewing in Spectator Mode. Enter the 4-digit Scorer PIN to unlock scoring.');
+    return;
+  }
   openModal('extras-modal');
 });
 
@@ -433,6 +468,7 @@ $$('#extra-runs-chips .chip-btn').forEach(chip => {
 $('cancel-extras-btn').addEventListener('click', () => closeModal('extras-modal'));
 
 $('confirm-extras-btn').addEventListener('click', () => {
+  if (isSpectatorMode) return;
   store.dispatch(actions.recordExtra(selectedExtraType, selectedExtraRuns));
   sound.playBuzzer();
   closeModal('extras-modal');
@@ -440,6 +476,7 @@ $('confirm-extras-btn').addEventListener('click', () => {
 
 // ─── Change Bowler Modal Handling ───────────────────────────────────
 function promptBowlerModal() {
+  if (isSpectatorMode) return;
   const state = store.getState();
   const bowlingKey = state.currentInnings === 1 ? state.bowlingFirst : state.battingFirst;
   const bowlingTeam = state.teams[bowlingKey];
@@ -474,6 +511,7 @@ $('quick-change-bowler-btn').addEventListener('click', promptBowlerModal);
 $('cancel-bowler-btn').addEventListener('click', () => closeModal('bowler-modal'));
 
 $('confirm-bowler-btn').addEventListener('click', () => {
+  if (isSpectatorMode) return;
   const custom = $('custom-bowler-input').value.trim();
   const selected = $('bowler-select-input').value;
   const bowlerName = custom || selected;
@@ -677,6 +715,7 @@ function renderArchiveList() {
 
 // ─── Keyboard Shortcuts ─────────────────────────────────────────────
 window.addEventListener('keydown', (e) => {
+  if (isSpectatorMode) return;
   if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
 
   const state = store.getState();

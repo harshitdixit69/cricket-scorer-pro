@@ -220,16 +220,11 @@ export function normalizeMatchId(raw) {
 const MATCH_AUTH_PREFIX = 'cric_match_auth_';
 let cachedRemotePins = new Map();
 
-export function getOrSetMatchPin(matchId, customPin = null) {
+/**
+ * Register this device as the authorized host creator for a match
+ */
+export function createHostMatch(matchId, customPin = null) {
   const normId = normalizeMatchId(matchId);
-  try {
-    const raw = localStorage.getItem(MATCH_AUTH_PREFIX + normId);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && parsed.pin) return parsed.pin;
-    }
-  } catch (e) {}
-
   const pin = customPin || Math.floor(1000 + Math.random() * 9000).toString();
   try {
     localStorage.setItem(MATCH_AUTH_PREFIX + normId, JSON.stringify({
@@ -238,12 +233,33 @@ export function getOrSetMatchPin(matchId, customPin = null) {
       createdAt: Date.now()
     }));
   } catch (e) {}
-
   return pin;
+}
+
+/**
+ * Retrieve the scorer PIN only if this device is authorized
+ */
+export function getMatchPin(matchId) {
+  const normId = normalizeMatchId(matchId);
+  try {
+    const raw = localStorage.getItem(MATCH_AUTH_PREFIX + normId);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.pin) return parsed.pin;
+    }
+  } catch (e) {}
+  return null;
+}
+
+export function getOrSetMatchPin(matchId, customPin = null) {
+  const existing = getMatchPin(matchId);
+  if (existing) return existing;
+  return createHostMatch(matchId, customPin);
 }
 
 export function isDeviceAuthorizedScorer(matchId) {
   const normId = normalizeMatchId(matchId);
+  if (!normId) return false;
   try {
     const raw = localStorage.getItem(MATCH_AUTH_PREFIX + normId);
     if (raw) {
@@ -296,8 +312,17 @@ export async function broadcastMatchState(matchId, matchState) {
   if (!matchId || !matchState) return;
 
   const normalizedId = normalizeMatchId(matchId);
+
+  // Security guard: Only authorized scorers can broadcast match state!
+  if (!isDeviceAuthorizedScorer(normalizedId)) {
+    return;
+  }
+
   const topic = `cricket_scorer_pro/v2/${normalizedId}`;
-  const pin = getOrSetMatchPin(normalizedId);
+  let pin = getMatchPin(normalizedId);
+  if (!pin) {
+    pin = createHostMatch(normalizedId);
+  }
 
   const payload = {
     matchId: normalizedId,

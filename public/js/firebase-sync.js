@@ -121,9 +121,9 @@ export async function getCloudMqttClient() {
         if (data && data.matchId && data.scorerPin) {
           cachedRemotePins.set(normalizeMatchId(data.matchId), data.scorerPin);
         }
-        if (data && data.matchState && typeof updateCallback === 'function') {
-          console.log(`[LiveSync] Received live match packet for ${data.matchId} (${data.matchState.phase})`);
-          updateCallback(data.matchState, data);
+        if (data && (data.matchState || data.isEnded || data.status === 'MATCH_CLOSED') && typeof updateCallback === 'function') {
+          console.log(`[LiveSync] Received live match packet for ${data.matchId} (${data.matchState?.phase || data.status})`);
+          updateCallback(data.matchState || { phase: 'MATCH_ENDED' }, data);
         }
       } catch (err) {
         console.warn('[LiveSync] Error parsing incoming match message:', err);
@@ -303,6 +303,54 @@ export async function broadcastMatchState(matchId, matchState) {
 }
 
 /**
+ * Broadcast match termination/reset so all spectator devices are notified and auto-redirected
+ */
+export async function broadcastMatchEnded(matchId) {
+  if (!matchId) return;
+
+  const normalizedId = normalizeMatchId(matchId);
+  const topic = `cricket_scorer_pro/v2/${normalizedId}`;
+
+  const payload = {
+    matchId: normalizedId,
+    isEnded: true,
+    status: 'MATCH_CLOSED',
+    message: 'The match host has ended or reset this match.',
+    lastUpdated: Date.now(),
+    matchState: { phase: 'MATCH_ENDED' }
+  };
+
+  lastPublishedPayload = payload;
+
+  // 1. Broadcast locally across same-browser tabs
+  if (broadcastChannel) {
+    try {
+      broadcastChannel.postMessage({ type: 'MATCH_UPDATE', payload });
+    } catch (e) {}
+  }
+
+  // 2. Publish to Cloud WebSocket Relay (retained so new/reloaded viewers get notice)
+  try {
+    const client = await getCloudMqttClient();
+    if (client && client.connected) {
+      client.publish(topic, JSON.stringify(payload), { qos: 1, retain: true });
+    }
+  } catch (err) {
+    console.warn('[LiveSync] Error publishing MATCH_ENDED to Cloud WebSocket:', err);
+  }
+
+  // 3. Publish to Optional Custom Firebase Realtime Database
+  try {
+    const fbDb = await getFirebaseDbInstance();
+    if (fbDb) {
+      const { ref, set } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+      const matchRef = ref(fbDb, `matches/${normalizedId}`);
+      await set(matchRef, payload);
+    }
+  } catch (err) {}
+}
+
+/**
  * Subscribe to real-time live updates for a match
  */
 export async function subscribeToLiveMatch(matchId, onUpdate) {
@@ -317,8 +365,8 @@ export async function subscribeToLiveMatch(matchId, onUpdate) {
     if (payload && payload.scorerPin) {
       cachedRemotePins.set(normalizedId, payload.scorerPin);
     }
-    if (payload && payload.matchState) {
-      onUpdate(payload.matchState, payload);
+    if (payload && (payload.matchState || payload.isEnded || payload.status === 'MATCH_CLOSED')) {
+      onUpdate(payload.matchState || { phase: 'MATCH_ENDED' }, payload);
     }
   };
 

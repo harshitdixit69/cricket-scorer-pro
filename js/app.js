@@ -23,6 +23,7 @@ import {
 import { renderQRCode } from './qrcode.js';
 import {
   broadcastMatchState,
+  broadcastMatchEnded,
   subscribeToLiveMatch,
   unsubscribeFromLiveMatch,
   generateMatchId,
@@ -500,10 +501,35 @@ $('continue-btn').addEventListener('click', () => {
   store.dispatch(actions.continueInnings(striker, nonStriker, bowler));
 });
 
-// ─── Result Screen Handlers ─────────────────────────────────────────
-$('result-new-match-btn').addEventListener('click', () => {
-  store.dispatch(actions.resetMatch());
-});
+// ─── Reset Match & Host Termination Handlers ─────────────────────────
+function handleHostResetMatch() {
+  const isMatchActive = store.getState().phase !== 'SETUP';
+  const msg = isMatchActive
+    ? 'Are you sure you want to end and reset the current match? This will close the live stream for all connected spectators.'
+    : 'Reset match settings?';
+
+  if (confirm(msg)) {
+    if (isMatchActive) {
+      // Broadcast MATCH_ENDED to all spectators over cloud and local channels
+      broadcastMatchEnded(activeBroadcastMatchId);
+    }
+
+    // Generate fresh match code for next match
+    activeBroadcastMatchId = generateMatchId();
+    setActiveBroadcastId(activeBroadcastMatchId);
+
+    // Reset store
+    store.dispatch(actions.resetMatch());
+
+    // Ensure setup screen is active
+    $$('.screen').forEach(s => s.classList.remove('active'));
+    const setup = $('setup-screen');
+    if (setup) setup.classList.add('active');
+  }
+}
+
+$('reset-btn').addEventListener('click', handleHostResetMatch);
+$('result-new-match-btn').addEventListener('click', handleHostResetMatch);
 
 $('export-img-btn').addEventListener('click', () => exportScorecardImage(store.getState()));
 $('result-export-img-btn').addEventListener('click', () => exportScorecardImage(store.getState()));
@@ -1013,11 +1039,52 @@ function enableSpectatorMode(matchId) {
   if (loadingOverlay) loadingOverlay.style.display = 'block';
 
   // Listen to remote updates
-  subscribeToLiveMatch(matchId, (remoteState) => {
+  subscribeToLiveMatch(matchId, (remoteState, payload) => {
+    if (payload?.isEnded || payload?.status === 'MATCH_CLOSED' || remoteState?.phase === 'MATCH_ENDED' || remoteState?.phase === 'SETUP') {
+      console.log('[LiveSync] Match ended or closed by host.');
+      handleRemoteMatchEnded();
+      return;
+    }
     if (remoteState) {
       if (loadingOverlay) loadingOverlay.style.display = 'none';
       store.dispatch(actions.loadMatchState(remoteState));
     }
+  });
+}
+
+function handleRemoteMatchEnded() {
+  unsubscribeFromLiveMatch();
+  isSpectatorMode = false;
+  document.body.classList.remove('spectator-view');
+
+  const cleanUrl = window.location.origin + window.location.pathname;
+  window.history.replaceState({}, document.title, cleanUrl);
+
+  const banner = $('spectator-mode-banner');
+  if (banner) banner.style.display = 'none';
+  const loadingOverlay = $('spectator-loading-overlay');
+  if (loadingOverlay) loadingOverlay.style.display = 'none';
+
+  // Reset store to fresh state
+  store.dispatch(actions.resetMatch());
+
+  // Show Match Ended modal
+  openModal('match-ended-modal');
+  setTimeout(() => {
+    closeModal('match-ended-modal');
+    $$('.screen').forEach(s => s.classList.remove('active'));
+    const setupScreen = $('setup-screen');
+    if (setupScreen) setupScreen.classList.add('active');
+  }, 2200);
+}
+
+const closeMatchEndedBtn = $('close-match-ended-btn');
+if (closeMatchEndedBtn) {
+  closeMatchEndedBtn.addEventListener('click', () => {
+    closeModal('match-ended-modal');
+    $$('.screen').forEach(s => s.classList.remove('active'));
+    const setupScreen = $('setup-screen');
+    if (setupScreen) setupScreen.classList.add('active');
   });
 }
 

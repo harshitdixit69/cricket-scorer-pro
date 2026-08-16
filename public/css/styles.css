@@ -1,0 +1,1133 @@
+/* ═══════════════════════════════════════════════════════════════════
+   Cricket Match Scoring App — Broadcast Grade Design System
+   Dark Glassmorphism Theme with Neon Stadium Lighting
+   ═══════════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* Surface & Backgrounds */
+  --bg-primary: #070b14;
+  --bg-gradient: radial-gradient(circle at 50% 0%, #15103a 0%, #0a0f1d 45%, #050811 100%);
+  --bg-card: rgba(255, 255, 255, 0.04);
+  --bg-card-hover: rgba(255, 255, 255, 0.07);
+  --bg-card-active: rgba(255, 255, 255, 0.1);
+  --bg-input: rgba(255, 255, 255, 0.06);
+  --bg-input-focus: rgba(255, 255, 255, 0.12);
+
+  /* Glass Borders */
+  --border-glass: rgba(255, 255, 255, 0.09);
+  --border-glass-hover: rgba(255, 255, 255, 0.2);
+  --border-accent: rgba(34, 197, 94, 0.5);
+
+  /* Text Hierarchy */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-heading: #ffffff;
+
+  /* Theme Accents */
+  --accent: #22c55e;
+  --accent-hover: #16a34a;
+  --accent-glow: rgba(34, 197, 94, 0.35);
+  --accent-soft: rgba(34, 197, 94, 0.12);
+
+  --accent-blue: #38bdf8;
+  --accent-blue-glow: rgba(56, 189, 248, 0.35);
+
+  --accent-gold: #f59e0b;
+  --accent-gold-glow: rgba(245, 158, 11, 0.35);
+
+  --accent-purple: #a855f7;
+  --accent-purple-glow: rgba(168, 85, 247, 0.35);
+
+  /* Ball & Event Color Tokens */
+  --color-dot: #475569;
+  --color-run: #3b82f6;
+  --color-four: #f59e0b;
+  --color-four-glow: rgba(245, 158, 11, 0.45);
+  --color-six: #eab308;
+  --color-six-glow: rgba(234, 179, 8, 0.5);
+  --color-wicket: #ef4444;
+  --color-wicket-glow: rgba(239, 68, 68, 0.45);
+  --color-extra: #f97316;
+  --color-bye: #8b5cf6;
+  --color-penalty: #ec4899;
+
+  /* Typography */
+  --font-ui: 'Outfit', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-card: 0 12px 36px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 24px var(--accent-glow);
+
+  color-scheme: dark;
+}
+
+/* ─── Global Reset ─────────────────────────────────────────────────── */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-ui);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+  line-height: 1.5;
+}
+
+/* ─── App Container ────────────────────────────────────────────────── */
+.app {
+  width: 100%;
+  max-width: 900px;
+  min-height: 100dvh;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* ─── Top Navbar / App Bar ─────────────────────────────────────────── */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  margin-bottom: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-icon {
+  font-size: 1.6rem;
+  filter: drop-shadow(0 0 8px var(--accent-glow));
+}
+
+.brand-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #ffffff 40%, #a7f3d0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+  border-color: var(--border-glass-hover);
+  transform: translateY(-1px);
+}
+
+.icon-btn:active {
+  transform: scale(0.95);
+}
+
+/* ─── Glass Card ───────────────────────────────────────────────────── */
+.glass-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ─── Screen Routing ───────────────────────────────────────────────── */
+.screen {
+  display: none;
+  width: 100%;
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.screen.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════ SETUP SCREEN ═══════════════ */
+.setup-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.setup-header h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 6px 0 4px;
+  background: linear-gradient(135deg, #ffffff 30%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.format-presets {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.preset-chip {
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.preset-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.preset-chip.active {
+  background: var(--accent-soft);
+  color: #4ade80;
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.form-group input, .form-group select {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.form-group input:focus, .form-group select:focus {
+  background: var(--bg-input-focus);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* ─── Buttons ──────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 24px;
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #ffffff;
+  box-shadow: 0 4px 20px var(--accent-glow);
+  width: 100%;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #2ae06c, #1ba94e);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(34, 197, 94, 0.5);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--border-glass-hover);
+}
+
+/* ═══════════════ TOSS SCREEN ═══════════════ */
+.toss-card-box {
+  text-align: center;
+}
+
+.toss-options {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 16px;
+  align-items: center;
+  margin: 24px 0;
+}
+
+.toss-team-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 24px 16px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.toss-team-btn:hover, .toss-team-btn.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 20px var(--accent-glow);
+  transform: scale(1.02);
+}
+
+.vs-badge {
+  font-weight: 900;
+  font-size: 1rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 8px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-glass);
+}
+
+.decision-options {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.decision-btn {
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.decision-btn.active {
+  background: var(--accent);
+  color: #000;
+  font-weight: 800;
+}
+
+/* ═══════════════ MATCH CENTER TABS ═══════════════ */
+.match-tabs {
+  display: flex;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.tab-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border: 1px solid var(--border-glass-hover);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+  animation: fadeIn 0.25s ease forwards;
+}
+
+/* ═══════════════ HERO SCOREBOARD ═══════════════ */
+.hero-scoreboard {
+  background: linear-gradient(135deg, rgba(30, 27, 75, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-xl);
+  padding: 20px;
+  margin-bottom: 16px;
+  position: relative;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+}
+
+.scoreboard-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.batting-team-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.team-pill {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #ffffff;
+}
+
+.innings-tag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: var(--radius-full);
+}
+
+.scoreboard-score-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.score-main {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.score-runs {
+  font-family: var(--font-mono);
+  font-size: 3.2rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.score-separator {
+  font-family: var(--font-mono);
+  font-size: 2.2rem;
+  color: var(--text-muted);
+}
+
+.score-wickets {
+  font-family: var(--font-mono);
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #f87171;
+}
+
+.score-rates {
+  display: flex;
+  gap: 14px;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.score-rates strong {
+  color: #ffffff;
+  font-family: var(--font-mono);
+}
+
+.target-equation-bar {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  font-size: 0.88rem;
+  color: #fbbf24;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.target-equation-bar strong {
+  font-family: var(--font-mono);
+  color: #ffffff;
+}
+
+.freehit-banner {
+  background: linear-gradient(90deg, #ef4444, #f97316);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  animation: pulseGlow 1.2s infinite alternate;
+  margin-top: 6px;
+}
+
+@keyframes pulseGlow {
+  from { box-shadow: 0 0 6px rgba(239, 68, 68, 0.5); }
+  to { box-shadow: 0 0 16px rgba(239, 68, 68, 0.9); }
+}
+
+/* ═══════════════ BATTERS & BOWLER CARDS ═══════════════ */
+.live-players-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 640px) {
+  .live-players-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.player-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+}
+
+.card-header-sm {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+
+.batter-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.02);
+  margin-bottom: 6px;
+  transition: all 0.2s ease;
+}
+
+.batter-row.on-strike {
+  background: rgba(34, 197, 94, 0.1);
+  border-left: 3px solid var(--accent);
+}
+
+.batter-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.strike-indicator {
+  color: var(--accent);
+  font-weight: 900;
+}
+
+.batter-stats {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  text-align: right;
+}
+
+.batter-stats strong {
+  font-size: 1rem;
+  color: #ffffff;
+}
+
+.batter-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.bowler-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-sm);
+}
+
+.bowler-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.bowler-figures {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+}
+
+.partnership-pill {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 4px 8px;
+  border-radius: var(--radius-full);
+  margin-top: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ═══════════════ THIS OVER BAR ═══════════════ */
+.current-over-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.over-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.over-balls-track {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ball-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.ball-dot { background: #334155; color: #94a3b8; }
+.ball-run { background: #2563eb; }
+.ball-four { background: #d97706; box-shadow: 0 0 12px var(--color-four-glow); }
+.ball-six { background: #ca8a04; box-shadow: 0 0 14px var(--color-six-glow); }
+.ball-wicket { background: #dc2626; box-shadow: 0 0 14px var(--color-wicket-glow); }
+.ball-extra { background: #ea580c; }
+.ball-bye { background: #7c3aed; }
+.ball-penalty { background: #db2777; }
+
+/* ═══════════════ SCORING MATRIX KEYPAD ═══════════════ */
+.keypad-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-xl);
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.keypad-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 600px) {
+  .keypad-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.pad-btn {
+  padding: 16px 8px;
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 800;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-glass);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.pad-btn span.label-sub {
+  font-family: var(--font-ui);
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.pad-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+  border-color: var(--border-glass-hover);
+}
+
+.pad-btn:active {
+  transform: scale(0.96);
+}
+
+.pad-btn-four {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #f59e0b;
+}
+.pad-btn-four:hover {
+  background: rgba(245, 158, 11, 0.3);
+  box-shadow: 0 0 16px var(--color-four-glow);
+}
+
+.pad-btn-six {
+  background: rgba(234, 179, 8, 0.18);
+  border-color: rgba(234, 179, 8, 0.5);
+  color: #fbbf24;
+}
+.pad-btn-six:hover {
+  background: rgba(234, 179, 8, 0.35);
+  box-shadow: 0 0 20px var(--color-six-glow);
+}
+
+.pad-btn-wicket {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #f87171;
+}
+.pad-btn-wicket:hover {
+  background: rgba(239, 68, 68, 0.35);
+  box-shadow: 0 0 20px var(--color-wicket-glow);
+}
+
+/* Secondary Actions Bar */
+.secondary-actions-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sec-btn {
+  flex: 1;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-glass);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.sec-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+/* ═══════════════ DETAILED SCORECARD TAB ═══════════════ */
+.scorecard-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-xl);
+  padding: 20px;
+}
+
+.innings-toggle-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.innings-toggle-btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.innings-toggle-btn.active {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+}
+
+.sc-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+.sc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.sc-table th {
+  text-align: left;
+  padding: 10px 12px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.sc-table th.num, .sc-table td.num {
+  text-align: right;
+  font-family: var(--font-mono);
+}
+
+.sc-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.sc-batter-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sc-dismissal {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.fow-timeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-md);
+  margin-top: 10px;
+}
+
+.fow-badge {
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* ═══════════════ LIVE COMMENTARY TAB ═══════════════ */
+.commentary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.comm-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  font-size: 0.92rem;
+  animation: fadeIn 0.2s ease forwards;
+}
+
+.comm-ball-num {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  color: var(--accent-blue);
+  min-width: 36px;
+}
+
+.comm-text {
+  flex: 1;
+  color: var(--text-primary);
+}
+
+.comm-item.comm-four {
+  border-left: 3px solid var(--color-four);
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.comm-item.comm-six {
+  border-left: 3px solid var(--color-six);
+  background: rgba(234, 179, 8, 0.08);
+}
+
+.comm-item.comm-wicket {
+  border-left: 3px solid var(--color-wicket);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* ═══════════════ MODALS ═══════════════ */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1000;
+}
+
+.modal-backdrop.active {
+  display: flex;
+  animation: fadeIn 0.2s ease forwards;
+}
+
+.modal-card {
+  background: #0d1322;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chip-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.chip-btn {
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-align: center;
+}
+
+.chip-btn:hover, .chip-btn.active {
+  background: var(--accent-soft);
+  color: #4ade80;
+  border-color: var(--accent);
+}
+
+/* ═══════════════ EVENT OVERLAYS (FOUR/SIX/WICKET) ═══════════════ */
+.event-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: overlayPop 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.event-overlay-text {
+  font-family: var(--font-mono);
+  font-size: clamp(3rem, 10vw, 6rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  padding: 16px 36px;
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  text-shadow: 0 4px 24px rgba(0,0,0,0.6);
+}
+
+.event-overlay-four {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.25);
+  border: 2px solid #f59e0b;
+  box-shadow: 0 0 50px rgba(245, 158, 11, 0.6);
+}
+
+.event-overlay-six {
+  color: #fef08a;
+  background: rgba(234, 179, 8, 0.3);
+  border: 2px solid #eab308;
+  box-shadow: 0 0 70px rgba(234, 179, 8, 0.8);
+}
+
+.event-overlay-wicket {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.3);
+  border: 2px solid #ef4444;
+  box-shadow: 0 0 60px rgba(239, 68, 68, 0.7);
+}
+
+@keyframes overlayPop {
+  0% { transform: scale(0.4) rotate(-5deg); opacity: 0; }
+  35% { transform: scale(1.08) rotate(0deg); opacity: 1; }
+  70% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+
+/* ─── Confetti Canvas ──────────────────────────────────────────────── */
+#confetti-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1500;
+}

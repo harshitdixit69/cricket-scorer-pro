@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Professional ball-by-ball cricket scoring application with live batter/bowler tracking, striker rotation, full scorecards, wagon & worm charts, commentary, and sound effects.">
+  <title>Cricket Scorer Pro — Broadcast Live Match Tracker</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏏</text></svg>">
+</head>
+<body>
+
+  <!-- Fullscreen Confetti Particle Canvas -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <div class="app">
+
+    <!-- ═══════════════ TOP APP BAR ═══════════════ -->
+    <header class="app-header">
+      <div class="app-brand">
+        <span class="brand-icon">🏏</span>
+        <div>
+          <h1 class="brand-title">Cricket Scorer Pro</h1>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="sound-toggle-btn" class="icon-btn" title="Toggle Sound Effects">🔊</button>
+        <button id="undo-header-btn" class="icon-btn" title="Undo Last Ball (Ctrl+Z)">↩</button>
+        <button id="redo-header-btn" class="icon-btn" title="Redo Last Ball (Ctrl+Y)">↪</button>
+        <button id="shortcuts-btn" class="icon-btn" title="Keyboard Shortcuts">⌨</button>
+        <button id="archive-btn" class="icon-btn" title="Saved Matches Archive">📜</button>
+        <button id="reset-btn" class="icon-btn" title="New / Reset Match">🔄</button>
+      </div>
+    </header>
+
+    <!-- ═══════════════ 1. SETUP SCREEN ═══════════════ -->
+    <section id="setup-screen" class="screen active">
+      <div class="glass-card">
+        <div class="setup-header">
+          <span style="font-size: 2.8rem; filter: drop-shadow(0 0 12px var(--accent-glow));">🏏</span>
+          <h1>Match Setup</h1>
+          <p class="subtitle">Configure teams, match format, and squads</p>
+        </div>
+
+        <!-- Format Presets -->
+        <label style="font-size: 0.8rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px; display:block;">Match Preset</label>
+        <div class="format-presets">
+          <button type="button" class="preset-chip active" data-format="T20" data-overs="20" data-players="11" data-max="4">T20 (20 Ov)</button>
+          <button type="button" class="preset-chip" data-format="T10" data-overs="10" data-players="11" data-max="2">T10 (10 Ov)</button>
+          <button type="button" class="preset-chip" data-format="100BALL" data-overs="16" data-players="11" data-max="4">The Hundred</button>
+          <button type="button" class="preset-chip" data-format="BOX" data-overs="6" data-players="6" data-max="2">Box / Gully (6 Ov)</button>
+          <button type="button" class="preset-chip" data-format="ODI" data-overs="50" data-players="11" data-max="10">ODI (50 Ov)</button>
+          <button type="button" class="preset-chip" data-format="CUSTOM">Custom</button>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="team-a-input">Team A Name</label>
+            <input id="team-a-input" type="text" placeholder="e.g. India" value="India" autocomplete="off">
+          </div>
+
+          <div class="form-group">
+            <label for="team-b-input">Team B Name</label>
+            <input id="team-b-input" type="text" placeholder="e.g. Australia" value="Australia" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="overs-input">Total Overs</label>
+            <input id="overs-input" type="number" min="1" max="50" value="20">
+          </div>
+
+          <div class="form-group">
+            <label for="players-input">Players Per Team</label>
+            <input id="players-input" type="number" min="2" max="15" value="11">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="max-overs-input">Max Overs Per Bowler</label>
+          <input id="max-overs-input" type="number" min="1" max="10" value="4">
+        </div>
+
+        <!-- Optional Squad Customization -->
+        <details style="margin-bottom: 20px; background: rgba(255,255,255,0.02); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-glass);">
+          <summary style="cursor: pointer; font-weight:600; color:var(--accent-blue);">✏️ Customize Player Names / Squads (Optional)</summary>
+          <div style="margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div>
+              <label style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">Team A Players (comma-separated)</label>
+              <textarea id="squad-a-text" rows="4" style="width:100%; margin-top:4px; padding:8px; background:var(--bg-input); border:1px solid var(--border-glass); color:#fff; border-radius:var(--radius-sm); font-size:0.85rem;" placeholder="Rohit, Gill, Kohli, Shreyas, Rahul, Hardik, Jadeja, Axar, Kuldeep, Bumrah, Siraj"></textarea>
+            </div>
+            <div>
+              <label style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">Team B Players (comma-separated)</label>
+              <textarea id="squad-b-text" rows="4" style="width:100%; margin-top:4px; padding:8px; background:var(--bg-input); border:1px solid var(--border-glass); color:#fff; border-radius:var(--radius-sm); font-size:0.85rem;" placeholder="Head, Warner, Smith, Labuschagne, Maxwell, Marsh, Carey, Cummins, Starc, Zampa, Hazlewood"></textarea>
+            </div>
+          </div>
+        </details>
+
+        <button id="start-btn" class="btn btn-primary">Proceed to Toss →</button>
+      </div>
+    </section>
+
+    <!-- ═══════════════ 2. TOSS SCREEN ═══════════════ -->
+    <section id="toss-screen" class="screen">
+      <div class="glass-card toss-card-box">
+        <span style="font-size:2.4rem;">🪙</span>
+        <h2 style="font-size:1.8rem; font-weight:800; margin:6px 0;">Match Toss</h2>
+        <p class="subtitle">Who won the toss?</p>
+
+        <div class="toss-options">
+          <button id="toss-team-a" class="toss-team-btn">
+            <span id="toss-team-a-name">Team A</span>
+          </button>
+          <span class="vs-badge">VS</span>
+          <button id="toss-team-b" class="toss-team-btn">
+            <span id="toss-team-b-name">Team B</span>
+          </button>
+        </div>
+
+        <div id="toss-decision-box" style="display:none; margin-top:20px;">
+          <p class="subtitle" style="margin-bottom:10px;">Elected to:</p>
+          <div class="decision-options">
+            <button id="decision-bat-btn" class="decision-btn active">🏏 Bat First</button>
+            <button id="decision-bowl-btn" class="decision-btn">⚾ Bowl First</button>
+          </div>
+          <button id="toss-proceed-btn" class="btn btn-primary" style="margin-top:24px;">Select Opening Lineup →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ 3. OPENING PLAYERS SCREEN ═══════════════ -->
+    <section id="opening-players-screen" class="screen">
+      <div class="glass-card">
+        <h2 style="font-size:1.6rem; font-weight:800; margin-bottom:4px;">Opening Lineup</h2>
+        <p class="subtitle" style="margin-bottom:20px;">Select the opening batters and opening bowler</p>
+
+        <div class="form-group">
+          <label for="striker-select">Striker (*)</label>
+          <select id="striker-select"></select>
+        </div>
+
+        <div class="form-group">
+          <label for="non-striker-select">Non-Striker</label>
+          <select id="non-striker-select"></select>
+        </div>
+
+        <div class="form-group">
+          <label for="opening-bowler-select">Opening Bowler</label>
+          <select id="opening-bowler-select"></select>
+        </div>
+
+        <button id="start-scoring-btn" class="btn btn-primary" style="margin-top:12px;">Start 1st Innings 🏏</button>
+      </div>
+    </section>
+
+    <!-- ═══════════════ 4. MAIN MATCH SCORING CENTER ═══════════════ -->
+    <section id="scoring-screen" class="screen">
+
+      <!-- Navigation Tabs -->
+      <nav class="match-tabs">
+        <button class="tab-btn active" data-tab="tab-scoring">🎯 Live Scoring</button>
+        <button class="tab-btn" data-tab="tab-scorecard">📋 Full Scorecard</button>
+        <button class="tab-btn" data-tab="tab-charts">📈 Graphs & Charts</button>
+        <button class="tab-btn" data-tab="tab-commentary">🎙️ Commentary</button>
+        <button class="tab-btn" data-tab="tab-info">ℹ️ Match Info</button>
+      </nav>
+
+      <!-- TAB 1: LIVE SCORING CONSOLE -->
+      <div id="tab-scoring" class="tab-content active">
+
+        <!-- Hero Scoreboard -->
+        <div class="hero-scoreboard">
+          <div class="scoreboard-top">
+            <div class="batting-team-badge">
+              <span class="team-pill" id="batting-team-name">India</span>
+              <span class="innings-tag" id="innings-badge">1st Innings</span>
+            </div>
+            <div id="freehit-indicator" class="freehit-banner" style="display:none;">
+              ⚡ FREE HIT ACTIVE
+            </div>
+          </div>
+
+          <div class="scoreboard-score-row">
+            <div class="score-main">
+              <span id="total-runs" class="score-runs">0</span>
+              <span class="score-separator">/</span>
+              <span id="total-wickets" class="score-wickets">0</span>
+            </div>
+
+            <div class="score-rates">
+              <span>Overs: <strong id="overs-display">0.0</strong>/<span id="max-overs-display">20</span></span>
+              <span>CRR: <strong id="run-rate">0.00</strong></span>
+            </div>
+          </div>
+
+          <div id="target-equation-bar" class="target-equation-bar" style="display:none;">
+            <span>Target: <strong id="target-score">0</strong></span>
+            <span>Need: <strong id="runs-needed">0</strong> off <strong id="balls-remaining">0</strong>b</span>
+            <span>RRR: <strong id="required-rate">0.00</strong></span>
+          </div>
+        </div>
+
+        <!-- Live Batters & Bowler Cards -->
+        <div class="live-players-grid">
+          <!-- Batters Card -->
+          <div class="player-card">
+            <div class="card-header-sm">
+              <span>Batting</span>
+              <span>R (B) • 4s • 6s • SR</span>
+            </div>
+
+            <div id="striker-card-row" class="batter-row on-strike">
+              <div>
+                <span class="batter-name"><span class="strike-indicator">★</span> <span id="striker-name">Rohit</span></span>
+                <span class="batter-meta">Striker</span>
+              </div>
+              <div class="batter-stats">
+                <strong id="striker-runs">0</strong> (<span id="striker-balls">0</span>)
+                <span class="batter-meta">• <span id="striker-fours">0</span> • <span id="striker-sixes">0</span> • <span id="striker-sr">0.0</span></span>
+              </div>
+            </div>
+
+            <div id="non-striker-card-row" class="batter-row">
+              <div>
+                <span class="batter-name" style="padding-left:14px;"><span id="non-striker-name">Kohli</span></span>
+                <span class="batter-meta" style="padding-left:14px;">Non-Striker</span>
+              </div>
+              <div class="batter-stats">
+                <strong id="non-striker-runs">0</strong> (<span id="non-striker-balls">0</span>)
+                <span class="batter-meta">• <span id="non-striker-fours">0</span> • <span id="non-striker-sixes">0</span> • <span id="non-striker-sr">0.0</span></span>
+              </div>
+            </div>
+
+            <div class="partnership-pill">
+              <span>Current Partnership:</span>
+              <strong id="current-partnership-stat">0 (0b)</strong>
+            </div>
+          </div>
+
+          <!-- Bowler Card -->
+          <div class="player-card">
+            <div class="card-header-sm">
+              <span>Bowling</span>
+              <span>O - M - R - W • Econ</span>
+            </div>
+
+            <div class="bowler-stat-row">
+              <div>
+                <span class="bowler-name" id="current-bowler-name">Bumrah</span>
+                <div class="batter-meta">Spell Figures</div>
+              </div>
+              <div class="bowler-figures">
+                <strong id="bowler-figures-stat">0.0-0-0-0</strong>
+                <div class="batter-meta">Econ: <span id="bowler-econ-stat">0.00</span> • Dots: <span id="bowler-dots-stat">0</span></div>
+              </div>
+            </div>
+
+            <button id="quick-change-bowler-btn" class="sec-btn" style="width:100%; margin-top:8px; font-size:0.75rem; padding:6px;">
+              🔄 Change Bowler
+            </button>
+          </div>
+        </div>
+
+        <!-- This Over Ball Ribbon -->
+        <div class="current-over-section">
+          <div class="over-label">This Over:</div>
+          <div id="current-over-balls" class="over-balls-track">
+            <span style="font-size:0.85rem; color:var(--text-muted);">Start bowling...</span>
+          </div>
+        </div>
+
+        <!-- Scoring Keypad Matrix -->
+        <div class="keypad-card">
+          <div class="keypad-grid">
+            <button class="pad-btn" data-action="run" data-val="0">
+              0
+              <span class="label-sub">Dot</span>
+            </button>
+            <button class="pad-btn" data-action="run" data-val="1">
+              1
+              <span class="label-sub">Single</span>
+            </button>
+            <button class="pad-btn" data-action="run" data-val="2">
+              2
+              <span class="label-sub">Double</span>
+            </button>
+            <button class="pad-btn" data-action="run" data-val="3">
+              3
+              <span class="label-sub">Three</span>
+            </button>
+            <button class="pad-btn pad-btn-four" data-action="run" data-val="4">
+              4
+              <span class="label-sub">FOUR</span>
+            </button>
+            <button class="pad-btn pad-btn-six" data-action="run" data-val="6">
+              6
+              <span class="label-sub">SIX</span>
+            </button>
+          </div>
+
+          <!-- Secondary Actions / Wicket / Extras Row -->
+          <div class="secondary-actions-bar">
+            <button id="pad-wicket-btn" class="sec-btn pad-btn-wicket" style="font-weight:800; flex:1.2;">
+              🚨 WICKET (Out)
+            </button>
+            <button id="pad-extras-btn" class="sec-btn" style="flex:1.2;">
+              ➕ Extras (Wd / NB / B / LB)
+            </button>
+            <button id="pad-swap-strike-btn" class="sec-btn" title="Rotate Strike">
+              ⇄ Swap Strike
+            </button>
+            <button id="pad-undo-btn" class="sec-btn" title="Undo Last Delivery">
+              ↩ Undo
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- TAB 2: FULL DETAILED SCORECARD -->
+      <div id="tab-scorecard" class="tab-content">
+        <div class="scorecard-container">
+          <div class="innings-toggle-row">
+            <button id="sc-tab-inn1" class="innings-toggle-btn active">1st Innings</button>
+            <button id="sc-tab-inn2" class="innings-toggle-btn">2nd Innings</button>
+          </div>
+
+          <h3 id="sc-team-title" style="font-size:1.2rem; font-weight:800; margin-bottom:12px; color:#38bdf8;">1st Innings Scorecard</h3>
+
+          <!-- Batting Table -->
+          <div class="sc-table-wrap">
+            <table class="sc-table" id="sc-batting-table">
+              <thead>
+                <tr>
+                  <th>Batter</th>
+                  <th>Status</th>
+                  <th class="num">R</th>
+                  <th class="num">B</th>
+                  <th class="num">4s</th>
+                  <th class="num">6s</th>
+                  <th class="num">SR</th>
+                </tr>
+              </thead>
+              <tbody id="sc-batting-tbody"></tbody>
+            </table>
+          </div>
+
+          <!-- Extras & Total -->
+          <div style="background:rgba(255,255,255,0.03); padding:12px 16px; border-radius:var(--radius-md); margin-bottom:16px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+            <div>Extras: <strong id="sc-extras-summary">0 (wd 0, nb 0, b 0, lb 0, pen 0)</strong></div>
+            <div>Total Score: <strong id="sc-total-summary" style="font-size:1.1rem; color:#4ade80;">0/0 (0.0 ov)</strong></div>
+          </div>
+
+          <!-- Fall of Wickets -->
+          <h4 style="font-size:0.9rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px;">Fall of Wickets</h4>
+          <div id="sc-fow-list" class="fow-timeline">
+            <span style="font-size:0.8rem; color:var(--text-muted);">No wickets fallen yet</span>
+          </div>
+
+          <!-- Bowling Table -->
+          <h4 style="font-size:0.9rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin:20px 0 6px;">Bowling Figures</h4>
+          <div class="sc-table-wrap">
+            <table class="sc-table" id="sc-bowling-table">
+              <thead>
+                <tr>
+                  <th>Bowler</th>
+                  <th class="num">O</th>
+                  <th class="num">M</th>
+                  <th class="num">R</th>
+                  <th class="num">W</th>
+                  <th class="num">Econ</th>
+                  <th class="num">Dots</th>
+                  <th class="num">Wd</th>
+                  <th class="num">NB</th>
+                </tr>
+              </thead>
+              <tbody id="sc-bowling-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: GRAPHS & CHARTS -->
+      <div id="tab-charts" class="tab-content">
+        <div class="glass-card" style="margin-bottom:16px;">
+          <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:12px;">📊 Match Worm Chart (Run Progression)</h3>
+          <canvas id="worm-chart-canvas"></canvas>
+          <div style="display:flex; gap:16px; justify-content:center; margin-top:8px; font-size:0.85rem;">
+            <span style="color:#38bdf8;">● Team 1 (1st Innings)</span>
+            <span style="color:#22c55e;">● Team 2 (2nd Innings)</span>
+            <span style="color:#ef4444;">● Wicket Dot</span>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:12px;">📈 Manhattan Chart (Runs Per Over)</h3>
+          <canvas id="manhattan-chart-canvas"></canvas>
+        </div>
+      </div>
+
+      <!-- TAB 4: LIVE COMMENTARY -->
+      <div id="tab-commentary" class="tab-content">
+        <div class="glass-card">
+          <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:12px;">🎙️ Ball-by-Ball Live Commentary</h3>
+          <div id="live-commentary-list" class="commentary-list">
+            <div style="text-align:center; color:var(--text-muted); padding:20px;">Commentary will appear as balls are bowled.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 5: MATCH INFO & SHARING -->
+      <div id="tab-info" class="tab-content">
+        <div class="glass-card">
+          <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:16px;">ℹ️ Match Information</h3>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; font-size:0.95rem;">
+            <div>Match Format: <strong id="info-format">T20 (20 Overs)</strong></div>
+            <div>Toss Result: <strong id="info-toss">India elected to bat</strong></div>
+            <div>Max Bowler Overs: <strong id="info-max-bowler">4 overs</strong></div>
+            <div>Players Count: <strong id="info-players-count">11 per side</strong></div>
+          </div>
+
+          <h4 style="font-size:0.9rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:10px;">Export & Share Scorecard</h4>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button id="export-img-btn" class="btn btn-secondary" style="flex:1;">📸 Download Scorecard Image</button>
+            <button id="copy-text-btn" class="btn btn-secondary" style="flex:1;">📋 Copy WhatsApp Summary</button>
+            <button id="export-json-btn" class="btn btn-secondary" style="flex:1;">💾 Export Match JSON</button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ═══════════════ 5. INNINGS BREAK SCREEN ═══════════════ -->
+    <section id="break-screen" class="screen">
+      <div class="glass-card" style="text-align:center;">
+        <span style="font-size:3rem;">🔄</span>
+        <h2 style="font-size:2rem; font-weight:800; margin:8px 0 4px;">Innings Complete!</h2>
+        <p class="subtitle" style="margin-bottom:20px;">1st Innings has wrapped up</p>
+
+        <div style="background:rgba(255,255,255,0.04); padding:20px; border-radius:var(--radius-lg); border:1px solid var(--border-glass); margin-bottom:20px;">
+          <div id="break-team-name" style="font-size:1.2rem; font-weight:700; color:#38bdf8;">India</div>
+          <div id="break-score" style="font-family:var(--font-mono); font-size:2.8rem; font-weight:800; color:#fff; margin:4px 0;">185/4</div>
+          <div id="break-overs" style="color:var(--text-muted); font-size:0.9rem;">(20.0 Overs)</div>
+
+          <div style="margin-top:16px; padding:10px; background:rgba(245, 158, 11, 0.15); border:1px solid rgba(245, 158, 11, 0.3); border-radius:var(--radius-md); color:#fbbf24; font-weight:700;">
+            Target for <span id="break-chasing-team">Australia</span>: <strong id="break-target-score" style="font-size:1.3rem; color:#fff;">186</strong> runs
+          </div>
+        </div>
+
+        <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:12px; text-align:left;">2nd Innings Openers</h3>
+        <div class="form-group" style="text-align:left;">
+          <label for="break-striker-select">Striker (*)</label>
+          <select id="break-striker-select"></select>
+        </div>
+        <div class="form-group" style="text-align:left;">
+          <label for="break-non-striker-select">Non-Striker</label>
+          <select id="break-non-striker-select"></select>
+        </div>
+        <div class="form-group" style="text-align:left;">
+          <label for="break-bowler-select">Opening Bowler</label>
+          <select id="break-bowler-select"></select>
+        </div>
+
+        <button id="continue-btn" class="btn btn-primary" style="margin-top:16px;">Start 2nd Innings →</button>
+      </div>
+    </section>
+
+    <!-- ═══════════════ 6. MATCH RESULT SCREEN ═══════════════ -->
+    <section id="result-screen" class="screen">
+      <div class="glass-card" style="text-align:center;">
+        <span style="font-size:3.5rem; filter:drop-shadow(0 0 16px var(--accent-gold-glow));">🏆</span>
+        <h2 id="result-text" style="font-size:2.2rem; font-weight:900; margin:10px 0 4px; background:linear-gradient(135deg, #fef08a, #f59e0b); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">
+          India Wins!
+        </h2>
+        <div id="result-summary" style="margin-bottom:20px;"></div>
+
+        <!-- MVP / Player of the Match Card -->
+        <div id="mvp-award-card" style="background:rgba(245, 158, 11, 0.1); border:1px solid rgba(245, 158, 11, 0.3); border-radius:var(--radius-lg); padding:16px; margin-bottom:24px;">
+          <div style="font-size:0.8rem; font-weight:800; color:#fbbf24; text-transform:uppercase; letter-spacing:0.06em;">🎖️ Player of the Match</div>
+          <div id="mvp-player-name" style="font-size:1.3rem; font-weight:800; color:#fff; margin:4px 0;">Virat Kohli</div>
+          <div id="mvp-player-stats" style="font-size:0.9rem; color:var(--text-secondary);">76 (44b) • 2 Wickets</div>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button id="result-export-img-btn" class="btn btn-secondary" style="flex:1;">📸 Save Scorecard</button>
+          <button id="result-copy-text-btn" class="btn btn-secondary" style="flex:1;">📋 Share WhatsApp</button>
+          <button id="result-new-match-btn" class="btn btn-primary" style="flex:1;">New Match 🏏</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ═══════════════ MODALS ═══════════════ -->
+
+  <!-- WICKET DISMISSAL MODAL -->
+  <div id="wicket-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <h3 class="modal-title">🚨 Record Wicket</h3>
+
+      <div class="form-group">
+        <label>Dismissal Type</label>
+        <div class="chip-grid" id="dismissal-type-chips">
+          <button type="button" class="chip-btn active" data-type="Bowled">Bowled</button>
+          <button type="button" class="chip-btn" data-type="Caught">Caught</button>
+          <button type="button" class="chip-btn" data-type="LBW">LBW</button>
+          <button type="button" class="chip-btn" data-type="Run Out">Run Out</button>
+          <button type="button" class="chip-btn" data-type="Stumped">Stumped</button>
+          <button type="button" class="chip-btn" data-type="Hit Wicket">Hit Wicket</button>
+        </div>
+      </div>
+
+      <div id="wicket-fielder-group" class="form-group" style="display:none;">
+        <label for="wicket-fielder-input">Fielder / Catcher Name</label>
+        <input id="wicket-fielder-input" type="text" placeholder="e.g. Jadeja">
+      </div>
+
+      <div id="wicket-runout-group" class="form-group" style="display:none;">
+        <label>Who Got Run Out?</label>
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+          <button type="button" id="runout-striker-btn" class="chip-btn active" style="flex:1;">Striker</button>
+          <button type="button" id="runout-nonstriker-btn" class="chip-btn" style="flex:1;">Non-Striker</button>
+        </div>
+        <label for="runout-runs-input">Runs Completed on Delivery</label>
+        <input id="runout-runs-input" type="number" min="0" max="3" value="0">
+      </div>
+
+      <div id="wicket-next-batter-group" class="form-group">
+        <label for="next-batter-select">Next Incoming Batter</label>
+        <select id="next-batter-select"></select>
+        <input id="next-batter-custom-input" type="text" placeholder="Or enter new batter name" style="margin-top:6px; display:none;">
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button id="cancel-wicket-btn" class="btn btn-secondary" style="flex:1;">Cancel</button>
+        <button id="confirm-wicket-btn" class="btn btn-primary" style="flex:1; background:#dc2626;">Confirm Wicket</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXTRAS MODAL -->
+  <div id="extras-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <h3 class="modal-title">➕ Record Extras</h3>
+
+      <div class="form-group">
+        <label>Extra Category</label>
+        <div class="chip-grid" id="extra-type-chips">
+          <button type="button" class="chip-btn active" data-extra="WIDE">Wide (Wd)</button>
+          <button type="button" class="chip-btn" data-extra="NOBALL">No Ball (NB)</button>
+          <button type="button" class="chip-btn" data-extra="LEGBYE">Leg Bye (LB)</button>
+          <button type="button" class="chip-btn" data-extra="BYE">Bye (B)</button>
+          <button type="button" class="chip-btn" data-extra="PENALTY">Penalty (+5)</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label id="extra-runs-label">Total Extra Runs</label>
+        <div class="chip-grid" id="extra-runs-chips">
+          <button type="button" class="chip-btn active" data-runs="1">1 Run</button>
+          <button type="button" class="chip-btn" data-runs="2">2 Runs</button>
+          <button type="button" class="chip-btn" data-runs="3">3 Runs</button>
+          <button type="button" class="chip-btn" data-runs="4">4 Runs</button>
+          <button type="button" class="chip-btn" data-runs="5">5 Runs (4+1)</button>
+          <button type="button" class="chip-btn" data-runs="6">6 Runs</button>
+          <button type="button" class="chip-btn" data-runs="7">7 Runs (6+1)</button>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button id="cancel-extras-btn" class="btn btn-secondary" style="flex:1;">Cancel</button>
+        <button id="confirm-extras-btn" class="btn btn-primary" style="flex:1;">Add Extra</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOWLER SELECTION MODAL -->
+  <div id="bowler-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <h3 class="modal-title">⚾ Select Next Bowler</h3>
+      <p class="subtitle" style="margin-bottom:16px;">Cannot bowl consecutive overs</p>
+
+      <div class="form-group">
+        <label for="bowler-select-input">Choose Bowler from Squad</label>
+        <select id="bowler-select-input" size="5" style="height:auto;"></select>
+      </div>
+
+      <div class="form-group">
+        <label for="custom-bowler-input">Or Enter Custom Bowler Name</label>
+        <input id="custom-bowler-input" type="text" placeholder="e.g. Shami">
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button id="cancel-bowler-btn" class="btn btn-secondary" style="flex:1;">Cancel</button>
+        <button id="confirm-bowler-btn" class="btn btn-primary" style="flex:1;">Confirm Bowler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KEYBOARD SHORTCUTS MODAL -->
+  <div id="shortcuts-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <h3 class="modal-title">⌨️ Keyboard Shortcuts</h3>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.9rem; margin-bottom:20px;">
+        <div><kbd style="background:#1e293b; padding:3px 8px; border-radius:4px;">0</kbd> to <kbd style="background:#1e293b; padding:3px 8px; border-radius:4px;">6</kbd> : Runs</div>
+        <div><kbd style="background:#1e293b; padding:3px 8px; border-radius:4px;">W</kbd> : Record Wicket</div>
+        <div><kbd style="background:#1e293b; padding:3px 8px; border-radius:4px;">X</kbd> : Open Extras</div>
+        <div><kbd style="background:#1e293b; padding:3px 8px; border-radius:4px;">S</kbd> : Swap Strike</div>
+        <div><kbd style="background:#1e293b; padding:3px 8px; border-radius:4px;">B</kbd> : Change Bowler</div>
+        <div><kbd style="background:#1e293b; padding:3px 8px; border-radius:4px;">Z</kbd> : Undo Ball</div>
+        <div><kbd style="background:#1e293b; padding:3px 8px; border-radius:4px;">Y</kbd> : Redo Ball</div>
+        <div><kbd style="background:#1e293b; padding:3px 8px; border-radius:4px;">M</kbd> : Toggle Audio</div>
+      </div>
+      <button id="close-shortcuts-btn" class="btn btn-secondary" style="width:100%;">Close</button>
+    </div>
+  </div>
+
+  <!-- MATCH ARCHIVE MODAL -->
+  <div id="archive-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <h3 class="modal-title">📜 Saved Match History</h3>
+      <div id="archive-matches-list" style="display:flex; flex-direction:column; gap:10px; max-height:350px; overflow-y:auto; margin-bottom:16px;">
+        <div style="color:var(--text-muted); text-align:center; padding:20px;">No saved matches found</div>
+      </div>
+      <button id="close-archive-btn" class="btn btn-secondary" style="width:100%;">Close</button>
+    </div>
+  </div>
+
+  <!-- Dynamic Event Overlays Container (FOUR! / SIX! / WICKET!) -->
+  <div id="event-overlay-container"></div>
+
+  <!-- Module Script -->
+  <script type="module" src="js/app.js"></script>
+
+</body>
+</html>

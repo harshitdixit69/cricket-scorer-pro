@@ -1,0 +1,10 @@
+{
+  "name": "cricket-scorer-pro",
+  "version": "2.0.0",
+  "description": "Broadcast-Grade Live Cricket Match Scoring Application",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  }
+}

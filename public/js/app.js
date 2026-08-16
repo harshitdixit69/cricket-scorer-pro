@@ -1212,9 +1212,14 @@ const closeMatchEndedBtn = $('close-match-ended-btn');
 if (closeMatchEndedBtn) {
   closeMatchEndedBtn.addEventListener('click', () => {
     closeModal('match-ended-modal');
-    $$('.screen').forEach(s => s.classList.remove('active'));
-    const setupScreen = $('setup-screen');
-    if (setupScreen) setupScreen.classList.add('active');
+    stopPresenceTracking();
+    unsubscribeFromLiveMatch();
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {}
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.location.replace(cleanUrl);
   });
 }
 
@@ -1244,24 +1249,26 @@ const spectatorExitBtn = $('spectator-exit-btn');
 if (spectatorExitBtn) {
   spectatorExitBtn.addEventListener('click', () => {
     if (confirm('Leave live match spectator view and return to the main screen?')) {
+      stopPresenceTracking();
       unsubscribeFromLiveMatch();
       isSpectatorMode = false;
       document.body.classList.remove('spectator-view');
 
-      // Clear query params from browser URL
+      // Clear all keys from localStorage and sessionStorage
+      try {
+        localStorage.clear();
+      } catch (e) {
+        console.warn('[Storage] Error clearing localStorage', e);
+      }
+      try {
+        sessionStorage.clear();
+      } catch (e) {
+        console.warn('[Storage] Error clearing sessionStorage', e);
+      }
+
+      // Hard redirect to clean URL to reset state and store completely
       const cleanUrl = window.location.origin + window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
-
-      // Hide spectator banner and loading overlay
-      const banner = $('spectator-mode-banner');
-      if (banner) banner.style.display = 'none';
-      const loadingOverlay = $('spectator-loading-overlay');
-      if (loadingOverlay) loadingOverlay.style.display = 'none';
-
-      // Switch back to setup screen
-      $$('.screen').forEach(s => s.classList.remove('active'));
-      const setupScreen = $('setup-screen');
-      if (setupScreen) setupScreen.classList.add('active');
+      window.location.replace(cleanUrl);
     }
   });
 }

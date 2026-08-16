@@ -37,7 +37,11 @@ import {
   onConnectionStatusChange,
   getOrSetMatchPin,
   isDeviceAuthorizedScorer,
-  verifyAndAuthorizeScorer
+  verifyAndAuthorizeScorer,
+  broadcastReaction,
+  onReaction,
+  startPresenceTracking,
+  stopPresenceTracking
 } from './firebase-sync.js';
 
 // ─── Store Initialization ───────────────────────────────────────────
@@ -1004,16 +1008,73 @@ onConnectionStatusChange((status, label) => {
 
 let activeWatchingMatchId = null;
 
+// Live Spectator Presence & Reactions
+function updateViewerCount(count) {
+  const headerBadge = $('header-viewer-badge');
+  const headerText = $('viewer-count-text');
+  if (headerBadge && headerText) {
+    headerBadge.style.display = 'inline-flex';
+    headerText.textContent = count === 1 ? '1 Watching' : `${count} Watching`;
+  }
+  const statusEl = $('spectator-status-text');
+  if (statusEl && isSpectatorMode) {
+    statusEl.textContent = `● Live • 👀 ${count} Watching`;
+  }
+}
+
+// Floating Emoji Animation Generator
+function triggerFloatingEmoji(emoji) {
+  const container = $('floating-reactions-layer');
+  if (!container) return;
+
+  const el = document.createElement('div');
+  el.className = 'floating-reaction-item';
+  el.textContent = emoji;
+
+  const leftPercent = 15 + Math.random() * 70;
+  const rotDeg = -25 + Math.random() * 50;
+  el.style.left = `${leftPercent}%`;
+  el.style.setProperty('--rot', `${rotDeg}deg`);
+
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 2400);
+}
+
+// Listen to incoming live reactions
+onReaction((payload) => {
+  if (payload && payload.emoji) {
+    triggerFloatingEmoji(payload.emoji);
+    const countEl = $(`count-${payload.reactionType}`);
+    if (countEl) {
+      const current = parseInt(countEl.textContent || '0', 10) || 0;
+      countEl.textContent = current + 1;
+    }
+  }
+});
+
+// Wire up reaction button click handlers
+$$('.reaction-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const emoji = btn.dataset.emoji;
+    const type = btn.dataset.type;
+    const matchId = activeWatchingMatchId || activeBroadcastMatchId;
+
+    broadcastReaction(matchId, emoji, type);
+  });
+});
+
 // Store subscription: publish state if we are an authorized match scorer
 store.subscribe((state) => {
   if (!isSpectatorMode && state.phase !== 'SETUP') {
     broadcastMatchState(activeBroadcastMatchId, state);
+    startPresenceTracking(activeBroadcastMatchId, updateViewerCount);
   }
 });
 
 // Enable Spectator Mode
 function enableSpectatorMode(matchId) {
   activeWatchingMatchId = matchId;
+  startPresenceTracking(matchId, updateViewerCount);
 
   // If this device is already an authorized scorer for this match, don't lock into spectator mode
   if (isDeviceAuthorizedScorer(matchId)) {

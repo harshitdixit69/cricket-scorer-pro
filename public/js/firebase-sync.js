@@ -21,6 +21,31 @@ let updateCallback = null;
 let connectionStatusCallback = null;
 let lastPublishedPayload = null;
 
+// Presence & Reactions State
+const MY_CLIENT_ID = 'user_' + Math.random().toString(36).slice(2, 9);
+let reactionCallback = null;
+let presenceCallback = null;
+let presenceInterval = null;
+let activePresenceMap = new Map();
+
+function handlePresencePing(matchId, clientId) {
+  activePresenceMap.set(clientId, Date.now());
+  cleanupAndNotifyPresence();
+}
+
+function cleanupAndNotifyPresence() {
+  const now = Date.now();
+  for (const [id, ts] of activePresenceMap.entries()) {
+    if (now - ts > 25000) {
+      activePresenceMap.delete(id);
+    }
+  }
+  const count = Math.max(1, activePresenceMap.size);
+  if (typeof presenceCallback === 'function') {
+    presenceCallback(count);
+  }
+}
+
 // Initialize cross-tab BroadcastChannel for zero-latency same-device tabs
 try {
   if (typeof BroadcastChannel !== 'undefined') {
@@ -118,6 +143,19 @@ export async function getCloudMqttClient() {
       try {
         const str = message.toString();
         const data = JSON.parse(str);
+
+        // Handle Live Emoji Reactions
+        if (data && data.type === 'REACTION' && typeof reactionCallback === 'function') {
+          reactionCallback(data);
+          return;
+        }
+
+        // Handle Live Presence Heartbeat
+        if (data && data.type === 'HEARTBEAT' && data.matchId && data.clientId) {
+          handlePresencePing(data.matchId, data.clientId);
+          return;
+        }
+
         if (data && data.matchId && data.scorerPin) {
           cachedRemotePins.set(normalizeMatchId(data.matchId), data.scorerPin);
         }
@@ -420,6 +458,103 @@ export function unsubscribeFromLiveMatch() {
   }
   subscribedTopic = null;
   updateCallback = null;
+  stopPresenceTracking();
+}
+
+/**
+ * Live Reaction Broadcast & Subscription
+ */
+export function onReaction(callback) {
+  reactionCallback = callback;
+}
+
+export async function broadcastReaction(matchId, emoji, reactionType = 'cheer') {
+  if (!matchId) return;
+  const normId = normalizeMatchId(matchId);
+  const topic = `cricket_scorer_pro/v2/${normId}/reactions`;
+
+  const payload = {
+    type: 'REACTION',
+    matchId: normId,
+    emoji,
+    reactionType,
+    senderId: MY_CLIENT_ID,
+    ts: Date.now()
+  };
+
+  // 1. Broadcast locally across same-browser tabs
+  if (broadcastChannel) {
+    try { broadcastChannel.postMessage(payload); } catch (e) {}
+  }
+
+  // 2. Publish to Cloud WebSocket Relay
+  try {
+    const client = await getCloudMqttClient();
+    if (client && client.connected) {
+      client.publish(topic, JSON.stringify(payload), { qos: 0 });
+    }
+  } catch (err) {}
+
+  // 3. Trigger local callback
+  if (typeof reactionCallback === 'function') {
+    reactionCallback(payload);
+  }
+}
+
+/**
+ * Live Spectator Presence Tracking (Heartbeat)
+ */
+export async function startPresenceTracking(matchId, onCountUpdate) {
+  if (!matchId) return;
+  const normId = normalizeMatchId(matchId);
+  const topic = `cricket_scorer_pro/v2/${normId}/presence`;
+  presenceCallback = onCountUpdate;
+
+  // Add self
+  activePresenceMap.set(MY_CLIENT_ID, Date.now());
+  cleanupAndNotifyPresence();
+
+  const sendPing = async () => {
+    activePresenceMap.set(MY_CLIENT_ID, Date.now());
+    const payload = {
+      type: 'HEARTBEAT',
+      matchId: normId,
+      clientId: MY_CLIENT_ID,
+      ts: Date.now()
+    };
+    if (broadcastChannel) {
+      try { broadcastChannel.postMessage(payload); } catch (e) {}
+    }
+    try {
+      const client = await getCloudMqttClient();
+      if (client && client.connected) {
+        client.publish(topic, JSON.stringify(payload), { qos: 0 });
+      }
+    } catch (e) {}
+    cleanupAndNotifyPresence();
+  };
+
+  sendPing();
+  if (presenceInterval) clearInterval(presenceInterval);
+  presenceInterval = setInterval(sendPing, 10000);
+
+  // Subscribe to presence and reactions topics
+  try {
+    const client = await getCloudMqttClient();
+    if (client && client.connected) {
+      client.subscribe(`cricket_scorer_pro/v2/${normId}/presence`, { qos: 0 });
+      client.subscribe(`cricket_scorer_pro/v2/${normId}/reactions`, { qos: 0 });
+    }
+  } catch (e) {}
+}
+
+export function stopPresenceTracking() {
+  if (presenceInterval) {
+    clearInterval(presenceInterval);
+    presenceInterval = null;
+  }
+  presenceCallback = null;
+  activePresenceMap.clear();
 }
 
 /**

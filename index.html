@@ -17,6 +17,9 @@
   <!-- Fullscreen Confetti Particle Canvas -->
   <canvas id="confetti-canvas"></canvas>
 
+  <!-- Floating Emoji Reactions Layer -->
+  <div id="floating-reactions-layer" class="floating-reactions-layer"></div>
+
   <div class="app">
 
     <!-- ═══════════════ TOP APP BAR ═══════════════ -->
@@ -28,6 +31,10 @@
         </div>
       </div>
       <div class="header-actions">
+        <div id="header-viewer-badge" class="viewer-count-pill" style="display:none;" title="Live Spectators Watching Now">
+          <span class="live-dot" style="background:#38bdf8; box-shadow:0 0 8px #38bdf8;"></span>
+          <span id="viewer-count-text">1 Watching</span>
+        </div>
         <button id="live-share-header-btn" class="live-broadcast-btn" title="Share Live Match & QR Code"><span class="live-dot"></span><span>LIVE SHARE</span></button>
         <button id="firebase-settings-btn" class="icon-btn" title="Firebase Cloud Database Settings">☁️</button>
         <button id="sound-toggle-btn" class="icon-btn" title="Toggle Sound Effects">🔊</button>
@@ -313,6 +320,21 @@
           <div class="over-label">This Over:</div>
           <div id="current-over-balls" class="over-balls-track">
             <span style="font-size:0.85rem; color:var(--text-muted);">Start bowling...</span>
+          </div>
+        </div>
+
+        <!-- Live Interactive Emoji Reactions Dock -->
+        <div id="live-reactions-dock" class="reactions-dock">
+          <div class="reactions-dock-inner">
+            <span class="reactions-dock-label">🎉 Live Cheers:</span>
+            <div class="reactions-btn-group">
+              <button class="reaction-btn" data-emoji="👏" data-type="clap" title="Clap">👏 <span class="reaction-count" id="count-clap"></span></button>
+              <button class="reaction-btn" data-emoji="🔥" data-type="fire" title="Fire / Great Shot">🔥 <span class="reaction-count" id="count-fire"></span></button>
+              <button class="reaction-btn" data-emoji="🏏" data-type="six" title="Sixer">🏏 <span class="reaction-count" id="count-six"></span></button>
+              <button class="reaction-btn" data-emoji="😱" data-type="wicket" title="Wicket Shock">😱 <span class="reaction-count" id="count-wicket"></span></button>
+              <button class="reaction-btn" data-emoji="❤️" data-type="love" title="Support">❤️ <span class="reaction-count" id="count-love"></span></button>
+              <button class="reaction-btn" data-emoji="⚡" data-type="hype" title="Hype">⚡ <span class="reaction-count" id="count-hype"></span></button>
+            </div>
           </div>
         </div>
 

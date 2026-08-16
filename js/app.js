@@ -32,7 +32,8 @@ import {
   saveFirebaseConfig,
   isFirebaseConfigured,
   getActiveBroadcastId,
-  setActiveBroadcastId
+  setActiveBroadcastId,
+  onConnectionStatusChange
 } from './firebase-sync.js';
 
 // ─── Store Initialization ───────────────────────────────────────────
@@ -964,6 +965,14 @@ let activeBroadcastMatchId = getActiveBroadcastId() || generateMatchId();
 setActiveBroadcastId(activeBroadcastMatchId);
 let isSpectatorMode = false;
 
+// Connection Status Monitor
+onConnectionStatusChange((status, label) => {
+  const statusEl = $('spectator-status-text');
+  if (statusEl && isSpectatorMode) {
+    statusEl.textContent = status === 'connected' ? '● Connected to Live Match Stream' : `● ${label}`;
+  }
+});
+
 // Store subscription: publish state if we are the match scorer
 store.subscribe((state) => {
   if (!isSpectatorMode && state.phase !== 'SETUP') {
@@ -975,13 +984,24 @@ store.subscribe((state) => {
 function enableSpectatorMode(matchId) {
   isSpectatorMode = true;
   document.body.classList.add('spectator-view');
-  
+
+  // Switch to scoring screen view directly
+  $$('.screen').forEach(s => s.classList.remove('active'));
+  const scoringScreen = $('scoring-screen');
+  if (scoringScreen) scoringScreen.classList.add('active');
+
   const banner = $('spectator-mode-banner');
   if (banner) banner.style.display = 'flex';
+
+  const loadingOverlay = $('spectator-loading-overlay');
+  const codeEl = $('loading-match-code');
+  if (codeEl) codeEl.textContent = matchId;
+  if (loadingOverlay) loadingOverlay.style.display = 'block';
 
   // Listen to remote updates
   subscribeToLiveMatch(matchId, (remoteState) => {
     if (remoteState) {
+      if (loadingOverlay) loadingOverlay.style.display = 'none';
       store.dispatch(actions.loadMatchState(remoteState));
     }
   });
@@ -996,6 +1016,8 @@ if (switchScorerBtn) {
       document.body.classList.remove('spectator-view');
       const banner = $('spectator-mode-banner');
       if (banner) banner.style.display = 'none';
+      const loadingOverlay = $('spectator-loading-overlay');
+      if (loadingOverlay) loadingOverlay.style.display = 'none';
       alert('Scorer mode enabled. You now have full scoring controls.');
     }
   });

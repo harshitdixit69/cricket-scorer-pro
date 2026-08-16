@@ -10,6 +10,7 @@
   <title>Cricket Scorer Pro — Broadcast Live Match Tracker</title>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏏</text></svg>">
+  <script src="js/vendor/mqtt.min.js"></script>
 </head>
 <body>
 
@@ -182,9 +183,21 @@
         <div class="spectator-banner-left">
           <span class="live-dot"></span>
           <span class="spectator-badge">SPECTATOR VIEW</span>
-          <span style="font-size:0.85rem; color:var(--text-primary); font-weight:600;">Watching Live Ball-by-Ball Match</span>
+          <span id="spectator-status-text" style="font-size:0.85rem; color:var(--text-primary); font-weight:600;">Watching Live Ball-by-Ball Match</span>
         </div>
         <button id="spectator-switch-scorer-btn" class="btn btn-secondary" style="padding:4px 12px; font-size:0.75rem; border-radius:var(--radius-full);">Switch to Scorer Mode</button>
+      </div>
+
+      <!-- Spectator Connecting State Overlay -->
+      <div id="spectator-loading-overlay" class="glass-card" style="display:none; text-align:center; padding:36px 20px; margin:20px 0;">
+        <div style="font-size:3rem; margin-bottom:12px; animation: livePulse 1.5s infinite;">📡</div>
+        <h2 style="font-size:1.35rem; font-weight:800; color:#38bdf8; margin-bottom:8px;">Connecting to Live Match Stream...</h2>
+        <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:16px;">
+          Tuning in to Match <strong id="loading-match-code" style="color:#4ade80; font-family:var(--font-mono);">CRIC-XXXX</strong>. Live scorecard will appear automatically.
+        </p>
+        <div style="display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,0.06); padding:6px 16px; border-radius:var(--radius-full); font-size:0.8rem; color:var(--text-muted);">
+          <span class="live-dot"></span> Listening for Scorer's state on Cloud Stream
+        </div>
       </div>
 
       <!-- Navigation Tabs -->

@@ -487,6 +487,54 @@ $('confirm-bowler-btn').addEventListener('click', () => {
   closeModal('bowler-modal');
 });
 
+// ─── Quick Bowler Selector Strip ──────────────────────────────────
+function renderQuickBowlerStrip(state, bowlingTeam) {
+  const strip = $('quick-bowler-strip');
+  const chipsContainer = $('quick-bowler-chips');
+  if (!strip || !chipsContainer) return;
+
+  if (!isSpectatorMode && !state.currentBowler && (state.phase === 'INNINGS_1' || state.phase === 'INNINGS_2')) {
+    strip.style.display = 'block';
+
+    const squad = (bowlingTeam.batters || []).map(b => b.name);
+    const bowlers = bowlingTeam.bowlers || [];
+
+    chipsContainer.innerHTML = squad.map(name => {
+      const existing = bowlers.find(bw => bw.name.toLowerCase() === name.toLowerCase());
+      const oversBowled = existing ? existing.ballsBowled / 6 : 0;
+      const isPrev = name.toLowerCase() === (state.previousBowler || '').toLowerCase();
+      const isMax = oversBowled >= state.maxOversPerBowler;
+      const figures = existing ? `${formatOvers(existing.ballsBowled)} ov, ${existing.wickets}/${existing.runsConceded}` : '0 ov';
+
+      return `
+        <button class="bowler-chip-btn" data-name="${name}" ${isPrev || isMax ? 'disabled' : ''} title="${isPrev ? 'Last bowled (consecutive over not allowed)' : (isMax ? 'Max overs limit reached' : 'Select Bowler')}">
+          <span>${name}</span>
+          <span class="bowler-chip-stats">(${figures})</span>
+          ${isPrev ? '<span style="font-size:0.65rem; color:#f87171;">[Last]</span>' : ''}
+          ${isMax ? '<span style="font-size:0.65rem; color:#fbbf24;">[Max]</span>' : ''}
+        </button>
+      `;
+    }).join('');
+
+    chipsContainer.querySelectorAll('.bowler-chip-btn:not(:disabled)').forEach(chip => {
+      chip.onclick = () => {
+        const name = chip.dataset.name;
+        if (name) {
+          store.dispatch(actions.changeBowler(name));
+          sound.playRun(1);
+        }
+      };
+    });
+  } else {
+    strip.style.display = 'none';
+  }
+}
+
+const stripCustomBtn = $('strip-custom-bowler-btn');
+if (stripCustomBtn) {
+  stripCustomBtn.addEventListener('click', promptBowlerModal);
+}
+
 // ─── Innings Break Continue Handler ─────────────────────────────────
 $('continue-btn').addEventListener('click', () => {
   const striker = $('break-striker-select').value;
@@ -792,15 +840,36 @@ function renderScoringScreen(state, prevState) {
   $('non-striker-sixes').textContent = `${nonStriker.sixes}x6`;
   $('non-striker-sr').textContent = `SR ${calcStrikeRate(nonStriker.runs, nonStriker.balls)}`;
 
-  $('current-partnership-stat').textContent = `${battingTeam.currentPartnership?.runs || 0} runs (${battingTeam.currentPartnership?.balls || 0}b)`;
+  // 3. Bowler Live Card & Quick Strip
+  let displayBowler = null;
+  const isBowlerPending = !state.currentBowler;
 
-  // 3. Bowler Live Card
-  const currentBowler = (bowlingTeam.bowlers || []).find(b => b.name === state.currentBowler) || { name: state.currentBowler || 'Select Bowler', ballsBowled: 0, maidens: 0, runsConceded: 0, wickets: 0, dots: 0 };
+  if (state.currentBowler) {
+    displayBowler = (bowlingTeam.bowlers || []).find(b => b.name === state.currentBowler) || {
+      name: state.currentBowler, ballsBowled: 0, maidens: 0, runsConceded: 0, wickets: 0, dots: 0
+    };
+  } else if (state.previousBowler) {
+    displayBowler = (bowlingTeam.bowlers || []).find(b => b.name === state.previousBowler) || {
+      name: state.previousBowler, ballsBowled: 0, maidens: 0, runsConceded: 0, wickets: 0, dots: 0
+    };
+  } else {
+    displayBowler = { name: 'Select Bowler', ballsBowled: 0, maidens: 0, runsConceded: 0, wickets: 0, dots: 0 };
+  }
 
-  $('current-bowler-name').textContent = currentBowler.name;
-  $('bowler-figures-stat').textContent = `${formatOvers(currentBowler.ballsBowled)}-${currentBowler.maidens}-${currentBowler.runsConceded}-${currentBowler.wickets}`;
-  $('bowler-econ-stat').textContent = calcEconomy(currentBowler.runsConceded, currentBowler.ballsBowled);
-  $('bowler-dots-stat').textContent = currentBowler.dots;
+  if (isBowlerPending && isSpectatorMode && state.previousBowler) {
+    $('current-bowler-name').innerHTML = `${displayBowler.name} <span style="font-size:0.75rem; color:#facc15; font-weight:600;">(Over Finished)</span>`;
+  } else if (isBowlerPending && !isSpectatorMode) {
+    $('current-bowler-name').innerHTML = `<span style="color:#38bdf8;">Select Next Bowler ⚡</span>`;
+  } else {
+    $('current-bowler-name').textContent = displayBowler.name;
+  }
+
+  $('bowler-figures-stat').textContent = `${formatOvers(displayBowler.ballsBowled)}-${displayBowler.maidens}-${displayBowler.runsConceded}-${displayBowler.wickets}`;
+  $('bowler-econ-stat').textContent = calcEconomy(displayBowler.runsConceded, displayBowler.ballsBowled);
+  $('bowler-dots-stat').textContent = displayBowler.dots;
+
+  // Manage Quick Bowler Selector Strip
+  renderQuickBowlerStrip(state, bowlingTeam);
 
   // 4. This Over Ribbon
   const overBalls = state.currentOver.balls || [];

@@ -27,6 +27,8 @@
         </div>
       </div>
       <div class="header-actions">
+        <button id="live-share-header-btn" class="live-broadcast-btn" title="Share Live Match & QR Code"><span class="live-dot"></span><span>LIVE SHARE</span></button>
+        <button id="firebase-settings-btn" class="icon-btn" title="Firebase Cloud Database Settings">☁️</button>
         <button id="sound-toggle-btn" class="icon-btn" title="Toggle Sound Effects">🔊</button>
         <button id="undo-header-btn" class="icon-btn" title="Undo Last Ball (Ctrl+Z)">↩</button>
         <button id="redo-header-btn" class="icon-btn" title="Redo Last Ball (Ctrl+Y)">↪</button>
@@ -102,6 +104,21 @@
 
         <button id="start-btn" class="btn btn-primary">Proceed to Toss →</button>
       </div>
+
+      <!-- Join Live Match as Spectator Card -->
+      <div class="join-live-card">
+        <div class="join-live-header">
+          <span style="font-size:1.8rem;">📱</span>
+          <div>
+            <h3>Watch Live Match (Player / Spectator)</h3>
+            <p style="font-size:0.85rem; color:var(--text-secondary); margin:0;">Enter a 6-digit match code to follow the live ball-by-ball score</p>
+          </div>
+        </div>
+        <div class="join-input-group">
+          <input id="join-match-code-input" type="text" placeholder="e.g. CRIC-8492" maxlength="14" autocomplete="off">
+          <button id="join-match-btn" class="btn btn-primary" style="white-space:nowrap; padding:0 20px;">Watch Live 📺</button>
+        </div>
+      </div>
     </section>
 
     <!-- ═══════════════ 2. TOSS SCREEN ═══════════════ -->
@@ -159,6 +176,16 @@
 
     <!-- ═══════════════ 4. MAIN MATCH SCORING CENTER ═══════════════ -->
     <section id="scoring-screen" class="screen">
+
+      <!-- Spectator Mode Banner -->
+      <div id="spectator-mode-banner" class="spectator-banner" style="display:none;">
+        <div class="spectator-banner-left">
+          <span class="live-dot"></span>
+          <span class="spectator-badge">SPECTATOR VIEW</span>
+          <span style="font-size:0.85rem; color:var(--text-primary); font-weight:600;">Watching Live Ball-by-Ball Match</span>
+        </div>
+        <button id="spectator-switch-scorer-btn" class="btn btn-secondary" style="padding:4px 12px; font-size:0.75rem; border-radius:var(--radius-full);">Switch to Scorer Mode</button>
+      </div>
 
       <!-- Navigation Tabs -->
       <nav class="match-tabs">
@@ -627,6 +654,80 @@
         <div style="color:var(--text-muted); text-align:center; padding:20px;">No saved matches found</div>
       </div>
       <button id="close-archive-btn" class="btn btn-secondary" style="width:100%;">Close</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════ SHARE LIVE MATCH & QR MODAL ═══════════════ -->
+  <div id="share-live-modal" class="modal-backdrop">
+    <div class="modal-card" style="max-width:440px;">
+      <h3 class="modal-title" style="display:flex; align-items:center; justify-content:space-between;">
+        <span>📲 Share Live Match</span>
+        <span class="live-dot" title="Live Broadcast Active"></span>
+      </h3>
+      <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:14px;">
+        Players & spectators can scan this QR code or use the link to follow the live score in real-time.
+      </p>
+
+      <!-- Dynamic QR Canvas Container -->
+      <div class="qr-container">
+        <canvas id="qr-canvas"></canvas>
+        <span style="font-size:0.75rem; color:#475569; font-weight:700; margin-top:8px;">SCAN WITH PHONE CAMERA</span>
+      </div>
+
+      <!-- Match Code Box -->
+      <label style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Match Code</label>
+      <div class="share-code-pill">
+        <span id="modal-match-code" class="match-code-display">CRIC-8492</span>
+        <button id="copy-match-code-btn" class="btn btn-secondary btn-sm" style="padding:4px 12px; font-size:0.8rem;">Copy Code 📋</button>
+      </div>
+
+      <!-- Direct Share Link -->
+      <label style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Direct Spectator Link</label>
+      <div class="share-url-box">
+        <input id="modal-share-url" class="share-url-input" readonly value="">
+        <button id="copy-share-url-btn" class="btn btn-primary btn-sm" style="white-space:nowrap; padding:0 14px;">Copy Link 🔗</button>
+      </div>
+
+      <!-- WhatsApp Share Button -->
+      <button id="modal-whatsapp-share-btn" class="btn btn-whatsapp">
+        <span>Share via WhatsApp 💬</span>
+      </button>
+
+      <button id="close-share-modal-btn" class="btn btn-secondary" style="width:100%; margin-top:12px;">Close</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════ FIREBASE CLOUD SETTINGS MODAL ═══════════════ -->
+  <div id="firebase-settings-modal" class="modal-backdrop">
+    <div class="modal-card" style="max-width:480px;">
+      <h3 class="modal-title">☁️ Firebase Realtime Database</h3>
+      <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:14px;">
+        Connect your free Firebase Realtime Database for zero-latency multi-device live syncing across any network.
+      </p>
+
+      <div class="form-group" style="margin-bottom:12px;">
+        <label for="fb-db-url-input">Firebase Database URL <span style="color:#ef4444;">*</span></label>
+        <input id="fb-db-url-input" type="url" placeholder="https://your-project-default-rtdb.firebaseio.com" style="font-size:0.85rem;">
+      </div>
+
+      <div class="form-group" style="margin-bottom:12px;">
+        <label for="fb-api-key-input">API Key (Optional)</label>
+        <input id="fb-api-key-input" type="text" placeholder="AIzaSy..." style="font-size:0.85rem;">
+      </div>
+
+      <div class="form-group" style="margin-bottom:14px;">
+        <label for="fb-project-id-input">Project ID (Optional)</label>
+        <input id="fb-project-id-input" type="text" placeholder="my-cricket-app" style="font-size:0.85rem;">
+      </div>
+
+      <div id="fb-config-status" style="font-size:0.8rem; color:#4ade80; margin-bottom:14px; display:none;">
+        ✓ Firebase configuration saved!
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button id="save-firebase-config-btn" class="btn btn-primary" style="flex:1;">Save Settings 💾</button>
+        <button id="close-firebase-modal-btn" class="btn btn-secondary" style="flex:1;">Cancel</button>
+      </div>
     </div>
   </div>
 

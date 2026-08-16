@@ -7,6 +7,10 @@ A broadcast-grade, interactive live cricket scoring and match management applica
 ## ✨ Features
 
 - **⚡ Live Ball-by-Ball Scoring**: Fast, intuitive keypads for dots, singles, boundaries, extras (wides, no-balls, byes, leg-byes, penalty runs), wickets, and custom runs.
+- **📱 Real-Time Multi-Device Sync**:
+  - **Firebase Realtime Database Integration**: Any player or spectator can follow the match live on their phone in real time (<50ms updates).
+  - **📲 1-Click QR Code & Match Link Sharing**: Scorer can display a dynamic QR code for instant camera scanning or share directly to WhatsApp.
+  - **📺 Mobile-First Spectator View**: Read-only broadcast scoreboard that hides scoring controls for players while showing live striker stats, bowler figures, and commentary.
 - **📊 Real-Time Analytics & Charts**:
   - **Worm Chart**: Cumulative score comparison over-by-over across innings.
   - **Manhattan Chart**: Bar chart of runs scored per over with wicket markers.

@@ -20,6 +20,20 @@ import {
   getBallClass,
   calculateMVP
 } from './utils.js';
+import { renderQRCode } from './qrcode.js';
+import {
+  broadcastMatchState,
+  subscribeToLiveMatch,
+  unsubscribeFromLiveMatch,
+  generateMatchId,
+  normalizeMatchId,
+  getShareableMatchUrl,
+  getFirebaseConfig,
+  saveFirebaseConfig,
+  isFirebaseConfigured,
+  getActiveBroadcastId,
+  setActiveBroadcastId
+} from './firebase-sync.js';
 
 // ─── Store Initialization ───────────────────────────────────────────
 const store = createStore(reducer, initialState);
@@ -944,3 +958,165 @@ function renderResultScreen(state) {
 // ─── Subscribe Store & Initial Render ───────────────────────────────
 store.subscribe(render);
 render(store.getState(), null);
+
+// ─── Live Broadcasting & Firebase Realtime Synchronization ─────────
+let activeBroadcastMatchId = getActiveBroadcastId() || generateMatchId();
+setActiveBroadcastId(activeBroadcastMatchId);
+let isSpectatorMode = false;
+
+// Store subscription: publish state if we are the match scorer
+store.subscribe((state) => {
+  if (!isSpectatorMode && state.phase !== 'SETUP') {
+    broadcastMatchState(activeBroadcastMatchId, state);
+  }
+});
+
+// Enable Spectator Mode
+function enableSpectatorMode(matchId) {
+  isSpectatorMode = true;
+  document.body.classList.add('spectator-view');
+  
+  const banner = $('spectator-mode-banner');
+  if (banner) banner.style.display = 'flex';
+
+  // Listen to remote updates
+  subscribeToLiveMatch(matchId, (remoteState) => {
+    if (remoteState) {
+      store.dispatch(actions.loadMatchState(remoteState));
+    }
+  });
+}
+
+// Switch back to Scorer Mode
+const switchScorerBtn = $('spectator-switch-scorer-btn');
+if (switchScorerBtn) {
+  switchScorerBtn.addEventListener('click', () => {
+    if (confirm('Switch to Scorer Mode on this device to enable match scoring controls?')) {
+      isSpectatorMode = false;
+      document.body.classList.remove('spectator-view');
+      const banner = $('spectator-mode-banner');
+      if (banner) banner.style.display = 'none';
+      alert('Scorer mode enabled. You now have full scoring controls.');
+    }
+  });
+}
+
+// Check URL query parameters for ?match=MATCH_ID
+const urlParams = new URLSearchParams(window.location.search);
+const matchQueryParam = urlParams.get('match');
+if (matchQueryParam) {
+  const normalizedId = normalizeMatchId(matchQueryParam);
+  enableSpectatorMode(normalizedId);
+}
+
+// ─── Share Live Match Modal Handlers ────────────────────────────────
+function openShareModal() {
+  const state = store.getState();
+  const matchCode = activeBroadcastMatchId;
+  const shareUrl = getShareableMatchUrl(matchCode);
+
+  $('modal-match-code').textContent = matchCode;
+  $('modal-share-url').value = shareUrl;
+
+  // Render QR Code onto Canvas
+  const qrCanvas = $('qr-canvas');
+  if (qrCanvas) {
+    renderQRCode(qrCanvas, shareUrl, { size: 200, margin: 2 });
+  }
+
+  // Set WhatsApp button
+  const waBtn = $('modal-whatsapp-share-btn');
+  if (waBtn) {
+    const teamA = state.teams?.teamA?.name || 'Team A';
+    const teamB = state.teams?.teamB?.name || 'Team B';
+    const msg = `🏏 Watch Live Cricket Match (${teamA} vs ${teamB}) Ball-by-Ball on your phone!\n🔗 Live Link: ${shareUrl}\n🔑 Match Code: ${matchCode}`;
+    waBtn.onclick = () => {
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+    };
+  }
+
+  openModal('share-live-modal');
+}
+
+$('live-share-header-btn').addEventListener('click', openShareModal);
+$('close-share-modal-btn').addEventListener('click', () => closeModal('share-live-modal'));
+
+// Copy Match Code Button
+$('copy-match-code-btn').addEventListener('click', () => {
+  const code = $('modal-match-code').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = $('copy-match-code-btn');
+    const originalText = btn.textContent;
+    btn.textContent = 'Copied! ✓';
+    setTimeout(() => { btn.textContent = originalText; }, 2000);
+  });
+});
+
+// Copy Share URL Button
+$('copy-share-url-btn').addEventListener('click', () => {
+  const url = $('modal-share-url').value;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = $('copy-share-url-btn');
+    const originalText = btn.textContent;
+    btn.textContent = 'Copied! ✓';
+    setTimeout(() => { btn.textContent = originalText; }, 2000);
+  });
+});
+
+// ─── Join Live Match Input Handler ──────────────────────────────────
+const joinBtn = $('join-match-btn');
+const joinInput = $('join-match-code-input');
+
+function handleJoinLiveMatch() {
+  const code = normalizeMatchId(joinInput ? joinInput.value : '');
+  if (!code || code.length < 3) {
+    alert('Please enter a valid match code (e.g. CRIC-8492)');
+    return;
+  }
+
+  enableSpectatorMode(code);
+  const newUrl = getShareableMatchUrl(code);
+  window.history.pushState(null, '', newUrl);
+}
+
+if (joinBtn) joinBtn.addEventListener('click', handleJoinLiveMatch);
+if (joinInput) {
+  joinInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleJoinLiveMatch();
+  });
+}
+
+// ─── Firebase Settings Modal Handlers ───────────────────────────────
+$('firebase-settings-btn').addEventListener('click', () => {
+  const cfg = getFirebaseConfig();
+  $('fb-db-url-input').value = cfg.databaseURL || '';
+  $('fb-api-key-input').value = cfg.apiKey || '';
+  $('fb-project-id-input').value = cfg.projectId || '';
+  $('fb-config-status').style.display = 'none';
+  openModal('firebase-settings-modal');
+});
+
+$('close-firebase-modal-btn').addEventListener('click', () => closeModal('firebase-settings-modal'));
+
+$('save-firebase-config-btn').addEventListener('click', () => {
+  const dbUrl = $('fb-db-url-input').value.trim();
+  const apiKey = $('fb-api-key-input').value.trim();
+  const projectId = $('fb-project-id-input').value.trim();
+
+  saveFirebaseConfig({
+    databaseURL: dbUrl,
+    apiKey,
+    projectId,
+    authDomain: projectId ? `${projectId}.firebaseapp.com` : '',
+    storageBucket: projectId ? `${projectId}.appspot.com` : ''
+  });
+
+  const statusEl = $('fb-config-status');
+  statusEl.style.display = 'block';
+  statusEl.textContent = '✓ Configuration saved! Re-connecting...';
+
+  setTimeout(() => {
+    closeModal('firebase-settings-modal');
+  }, 1200);
+});
+

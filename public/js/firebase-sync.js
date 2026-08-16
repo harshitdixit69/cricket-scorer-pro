@@ -118,6 +118,9 @@ export async function getCloudMqttClient() {
       try {
         const str = message.toString();
         const data = JSON.parse(str);
+        if (data && data.matchId && data.scorerPin) {
+          cachedRemotePins.set(normalizeMatchId(data.matchId), data.scorerPin);
+        }
         if (data && data.matchState && typeof updateCallback === 'function') {
           console.log(`[LiveSync] Received live match packet for ${data.matchId} (${data.matchState.phase})`);
           updateCallback(data.matchState, data);
@@ -174,6 +177,81 @@ export function normalizeMatchId(raw) {
 }
 
 /**
+ * Scorer PIN & Device Authorization Management
+ */
+const MATCH_AUTH_PREFIX = 'cric_match_auth_';
+let cachedRemotePins = new Map();
+
+export function getOrSetMatchPin(matchId, customPin = null) {
+  const normId = normalizeMatchId(matchId);
+  try {
+    const raw = localStorage.getItem(MATCH_AUTH_PREFIX + normId);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.pin) return parsed.pin;
+    }
+  } catch (e) {}
+
+  const pin = customPin || Math.floor(1000 + Math.random() * 9000).toString();
+  try {
+    localStorage.setItem(MATCH_AUTH_PREFIX + normId, JSON.stringify({
+      pin,
+      isHost: true,
+      createdAt: Date.now()
+    }));
+  } catch (e) {}
+
+  return pin;
+}
+
+export function isDeviceAuthorizedScorer(matchId) {
+  const normId = normalizeMatchId(matchId);
+  try {
+    const raw = localStorage.getItem(MATCH_AUTH_PREFIX + normId);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && (parsed.isHost || parsed.isAuthorized)) {
+        return true;
+      }
+    }
+  } catch (e) {}
+  return false;
+}
+
+export function verifyAndAuthorizeScorer(matchId, inputPin) {
+  const normId = normalizeMatchId(matchId);
+  const cleanInput = (inputPin || '').trim();
+
+  // Check local PIN first
+  let targetPin = null;
+  try {
+    const raw = localStorage.getItem(MATCH_AUTH_PREFIX + normId);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.pin) targetPin = parsed.pin;
+    }
+  } catch (e) {}
+
+  // Or check remote PIN received via stream
+  if (!targetPin && cachedRemotePins.has(normId)) {
+    targetPin = cachedRemotePins.get(normId);
+  }
+
+  if (targetPin && cleanInput === targetPin.toString()) {
+    try {
+      localStorage.setItem(MATCH_AUTH_PREFIX + normId, JSON.stringify({
+        pin: cleanInput,
+        isAuthorized: true,
+        authorizedAt: Date.now()
+      }));
+    } catch (e) {}
+    return { success: true };
+  }
+
+  return { success: false, error: 'Incorrect 4-Digit Scorer PIN' };
+}
+
+/**
  * Broadcast current match state to Cloud WebSockets & Local Channels
  */
 export async function broadcastMatchState(matchId, matchState) {
@@ -181,9 +259,11 @@ export async function broadcastMatchState(matchId, matchState) {
 
   const normalizedId = normalizeMatchId(matchId);
   const topic = `cricket_scorer_pro/v2/${normalizedId}`;
+  const pin = getOrSetMatchPin(normalizedId);
 
   const payload = {
     matchId: normalizedId,
+    scorerPin: pin,
     lastUpdated: Date.now(),
     isLive: matchState.phase !== 'RESULT' && matchState.phase !== 'SETUP',
     matchState: matchState
@@ -233,12 +313,21 @@ export async function subscribeToLiveMatch(matchId, onUpdate) {
   subscribedTopic = topic;
   updateCallback = onUpdate;
 
+  const handleIncomingPayload = (payload) => {
+    if (payload && payload.scorerPin) {
+      cachedRemotePins.set(normalizedId, payload.scorerPin);
+    }
+    if (payload && payload.matchState) {
+      onUpdate(payload.matchState, payload);
+    }
+  };
+
   // 1. Listen on BroadcastChannel for instant local updates
   if (broadcastChannel) {
     broadcastChannel.onmessage = (event) => {
       if (event.data?.type === 'MATCH_UPDATE' && event.data?.payload?.matchId === normalizedId) {
         console.log('[LiveSync] Local BroadcastChannel packet received');
-        onUpdate(event.data.payload.matchState, event.data.payload);
+        handleIncomingPayload(event.data.payload);
       }
     };
   }

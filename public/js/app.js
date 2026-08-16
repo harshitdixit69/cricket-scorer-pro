@@ -33,7 +33,10 @@ import {
   isFirebaseConfigured,
   getActiveBroadcastId,
   setActiveBroadcastId,
-  onConnectionStatusChange
+  onConnectionStatusChange,
+  getOrSetMatchPin,
+  isDeviceAuthorizedScorer,
+  verifyAndAuthorizeScorer
 } from './firebase-sync.js';
 
 // ─── Store Initialization ───────────────────────────────────────────
@@ -973,7 +976,9 @@ onConnectionStatusChange((status, label) => {
   }
 });
 
-// Store subscription: publish state if we are the match scorer
+let activeWatchingMatchId = null;
+
+// Store subscription: publish state if we are an authorized match scorer
 store.subscribe((state) => {
   if (!isSpectatorMode && state.phase !== 'SETUP') {
     broadcastMatchState(activeBroadcastMatchId, state);
@@ -982,16 +987,25 @@ store.subscribe((state) => {
 
 // Enable Spectator Mode
 function enableSpectatorMode(matchId) {
-  isSpectatorMode = true;
-  document.body.classList.add('spectator-view');
+  activeWatchingMatchId = matchId;
+
+  // If this device is already an authorized scorer for this match, don't lock into spectator mode
+  if (isDeviceAuthorizedScorer(matchId)) {
+    isSpectatorMode = false;
+    document.body.classList.remove('spectator-view');
+    const banner = $('spectator-mode-banner');
+    if (banner) banner.style.display = 'none';
+  } else {
+    isSpectatorMode = true;
+    document.body.classList.add('spectator-view');
+    const banner = $('spectator-mode-banner');
+    if (banner) banner.style.display = 'flex';
+  }
 
   // Switch to scoring screen view directly
   $$('.screen').forEach(s => s.classList.remove('active'));
   const scoringScreen = $('scoring-screen');
   if (scoringScreen) scoringScreen.classList.add('active');
-
-  const banner = $('spectator-mode-banner');
-  if (banner) banner.style.display = 'flex';
 
   const loadingOverlay = $('spectator-loading-overlay');
   const codeEl = $('loading-match-code');
@@ -1007,19 +1021,69 @@ function enableSpectatorMode(matchId) {
   });
 }
 
-// Switch back to Scorer Mode
-const switchScorerBtn = $('spectator-switch-scorer-btn');
-if (switchScorerBtn) {
-  switchScorerBtn.addEventListener('click', () => {
-    if (confirm('Switch to Scorer Mode on this device to enable match scoring controls?')) {
-      isSpectatorMode = false;
-      document.body.classList.remove('spectator-view');
-      const banner = $('spectator-mode-banner');
-      if (banner) banner.style.display = 'none';
-      const loadingOverlay = $('spectator-loading-overlay');
-      if (loadingOverlay) loadingOverlay.style.display = 'none';
-      alert('Scorer mode enabled. You now have full scoring controls.');
+// ─── Scorer PIN Unlock Modal Handlers ──────────────────────────────
+const unlockPinBtn = $('spectator-unlock-pin-btn');
+const unlockPinModal = $('unlock-scorer-modal');
+const unlockPinInput = $('unlock-pin-input');
+const unlockPinError = $('unlock-pin-error');
+const submitUnlockPinBtn = $('submit-unlock-pin-btn');
+const cancelUnlockPinBtn = $('cancel-unlock-pin-btn');
+
+if (unlockPinBtn) {
+  unlockPinBtn.addEventListener('click', () => {
+    if (unlockPinInput) unlockPinInput.value = '';
+    if (unlockPinError) unlockPinError.style.display = 'none';
+    openModal('unlock-scorer-modal');
+    setTimeout(() => { if (unlockPinInput) unlockPinInput.focus(); }, 150);
+  });
+}
+
+if (cancelUnlockPinBtn) {
+  cancelUnlockPinBtn.addEventListener('click', () => closeModal('unlock-scorer-modal'));
+}
+
+function handleUnlockScorerSubmit() {
+  const matchId = activeWatchingMatchId || activeBroadcastMatchId;
+  const pin = unlockPinInput ? unlockPinInput.value.trim() : '';
+
+  if (!pin) {
+    if (unlockPinError) {
+      unlockPinError.textContent = 'Please enter the 4-digit Scorer PIN.';
+      unlockPinError.style.display = 'block';
     }
+    return;
+  }
+
+  const result = verifyAndAuthorizeScorer(matchId, pin);
+  if (result.success) {
+    closeModal('unlock-scorer-modal');
+    isSpectatorMode = false;
+    document.body.classList.remove('spectator-view');
+    const banner = $('spectator-mode-banner');
+    if (banner) banner.style.display = 'none';
+    const loadingOverlay = $('spectator-loading-overlay');
+    if (loadingOverlay) loadingOverlay.style.display = 'none';
+    activeBroadcastMatchId = matchId;
+    setActiveBroadcastId(matchId);
+    alert('🔓 Scorer mode unlocked! You now have official scoring controls on this device.');
+  } else {
+    if (unlockPinError) {
+      unlockPinError.textContent = '❌ Incorrect PIN. Scoring controls remain locked.';
+      unlockPinError.style.display = 'block';
+    }
+    if (unlockPinInput) {
+      unlockPinInput.select();
+      unlockPinInput.focus();
+    }
+  }
+}
+
+if (submitUnlockPinBtn) {
+  submitUnlockPinBtn.addEventListener('click', handleUnlockScorerSubmit);
+}
+if (unlockPinInput) {
+  unlockPinInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleUnlockScorerSubmit();
   });
 }
 
@@ -1036,9 +1100,12 @@ function openShareModal() {
   const state = store.getState();
   const matchCode = activeBroadcastMatchId;
   const shareUrl = getShareableMatchUrl(matchCode);
+  const scorerPin = getOrSetMatchPin(matchCode);
 
   $('modal-match-code').textContent = matchCode;
   $('modal-share-url').value = shareUrl;
+  const pinEl = $('modal-scorer-pin');
+  if (pinEl) pinEl.textContent = scorerPin;
 
   // Render QR Code onto Canvas
   const qrCanvas = $('qr-canvas');
@@ -1073,6 +1140,19 @@ $('copy-match-code-btn').addEventListener('click', () => {
     setTimeout(() => { btn.textContent = originalText; }, 2000);
   });
 });
+
+// Copy Scorer PIN Button
+const copyPinBtn = $('copy-scorer-pin-btn');
+if (copyPinBtn) {
+  copyPinBtn.addEventListener('click', () => {
+    const pin = $('modal-scorer-pin')?.textContent || '';
+    navigator.clipboard.writeText(pin).then(() => {
+      const originalText = copyPinBtn.textContent;
+      copyPinBtn.textContent = 'Copied! ✓';
+      setTimeout(() => { copyPinBtn.textContent = originalText; }, 2000);
+    });
+  });
+}
 
 // Copy Share URL Button
 $('copy-share-url-btn').addEventListener('click', () => {

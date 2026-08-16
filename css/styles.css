@@ -1327,13 +1327,19 @@ body.spectator-view #reset-btn {
   display: none !important;
 }
 
-body.spectator-view .live-cards-grid {
-  grid-template-columns: 1fr 1fr;
+/* PIN Unlock Modal Styles */
+#unlock-pin-input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
 }
 
-@media (max-width: 600px) {
-  body.spectator-view .live-cards-grid {
-    grid-template-columns: 1fr;
-  }
+.pin-badge {
+  font-family: var(--font-mono);
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 700;
 }
 

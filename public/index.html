@@ -185,7 +185,7 @@
           <span class="spectator-badge">SPECTATOR VIEW</span>
           <span id="spectator-status-text" style="font-size:0.85rem; color:var(--text-primary); font-weight:600;">Watching Live Ball-by-Ball Match</span>
         </div>
-        <button id="spectator-switch-scorer-btn" class="btn btn-secondary" style="padding:4px 12px; font-size:0.75rem; border-radius:var(--radius-full);">Switch to Scorer Mode</button>
+        <button id="spectator-unlock-pin-btn" class="btn btn-secondary" style="padding:4px 12px; font-size:0.75rem; border-radius:var(--radius-full); display:flex; align-items:center; gap:4px;">🔒 Unlock Scorer Mode</button>
       </div>
 
       <!-- Spectator Connecting State Overlay -->
@@ -694,6 +694,16 @@
         <button id="copy-match-code-btn" class="btn btn-secondary btn-sm" style="padding:4px 12px; font-size:0.8rem;">Copy Code 📋</button>
       </div>
 
+      <!-- Scorer Secret PIN (for Host / Handover) -->
+      <label style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">🔒 Scorer PIN (Only for official scorer handover)</label>
+      <div class="share-code-pill" style="background:rgba(245, 158, 11, 0.08); border:1px solid rgba(245, 158, 11, 0.35);">
+        <div>
+          <span id="modal-scorer-pin" class="match-code-display" style="color:#fbbf24;">4821</span>
+          <div style="font-size:0.72rem; color:var(--text-muted);">Required to unlock scoring controls on another device</div>
+        </div>
+        <button id="copy-scorer-pin-btn" class="btn btn-secondary btn-sm" style="padding:4px 12px; font-size:0.8rem;">Copy PIN 📋</button>
+      </div>
+
       <!-- Direct Share Link -->
       <label style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Direct Spectator Link</label>
       <div class="share-url-box">
@@ -707,6 +717,30 @@
       </button>
 
       <button id="close-share-modal-btn" class="btn btn-secondary" style="width:100%; margin-top:12px;">Close</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════ UNLOCK SCORER PIN MODAL ═══════════════ -->
+  <div id="unlock-scorer-modal" class="modal-backdrop">
+    <div class="modal-card" style="max-width:380px; text-align:center;">
+      <div style="font-size:2.8rem; margin-bottom:8px;">🔒</div>
+      <h3 class="modal-title" style="margin-bottom:6px;">Unlock Scorer Mode</h3>
+      <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:16px;">
+        Enter the 4-digit Scorer PIN provided by the match host to unlock full scoring controls on this device.
+      </p>
+
+      <div class="form-group" style="margin-bottom:14px;">
+        <input id="unlock-pin-input" type="password" maxlength="6" placeholder="• • • •" autocomplete="off" inputmode="numeric" style="font-family:var(--font-mono); font-size:1.8rem; text-align:center; letter-spacing:0.3em; padding:10px;">
+      </div>
+
+      <div id="unlock-pin-error" style="color:#ef4444; font-size:0.82rem; font-weight:600; margin-bottom:14px; display:none;">
+        ❌ Incorrect Scorer PIN. Please try again.
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button id="submit-unlock-pin-btn" class="btn btn-primary" style="flex:1;">Unlock Controls 🔓</button>
+        <button id="cancel-unlock-pin-btn" class="btn btn-secondary" style="flex:1;">Cancel</button>
+      </div>
     </div>
   </div>
 

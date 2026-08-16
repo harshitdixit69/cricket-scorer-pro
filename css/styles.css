@@ -1317,14 +1317,23 @@ body {
 }
 
 /* Spectator Mode View Switcher */
-body.spectator-view .scoring-keypad,
+body.spectator-view .keypad-card,
+body.spectator-view .keypad-grid,
 body.spectator-view .pad-actions-row,
 body.spectator-view #swap-striker-btn,
 body.spectator-view #quick-change-bowler-btn,
 body.spectator-view #undo-header-btn,
 body.spectator-view #redo-header-btn,
+body.spectator-view #shortcuts-btn,
+body.spectator-view #firebase-settings-btn,
 body.spectator-view #reset-btn {
   display: none !important;
+}
+
+#spectator-exit-btn:hover {
+  background: rgba(239, 68, 68, 0.4) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px);
 }
 
 /* PIN Unlock Modal Styles */

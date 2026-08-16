@@ -1042,6 +1042,33 @@ if (cancelUnlockPinBtn) {
   cancelUnlockPinBtn.addEventListener('click', () => closeModal('unlock-scorer-modal'));
 }
 
+// ─── Exit Spectator Mode Handler ──────────────────────────────────
+const spectatorExitBtn = $('spectator-exit-btn');
+if (spectatorExitBtn) {
+  spectatorExitBtn.addEventListener('click', () => {
+    if (confirm('Leave live match spectator view and return to the main screen?')) {
+      unsubscribeFromLiveMatch();
+      isSpectatorMode = false;
+      document.body.classList.remove('spectator-view');
+
+      // Clear query params from browser URL
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+
+      // Hide spectator banner and loading overlay
+      const banner = $('spectator-mode-banner');
+      if (banner) banner.style.display = 'none';
+      const loadingOverlay = $('spectator-loading-overlay');
+      if (loadingOverlay) loadingOverlay.style.display = 'none';
+
+      // Switch back to setup screen
+      $$('.screen').forEach(s => s.classList.remove('active'));
+      const setupScreen = $('setup-screen');
+      if (setupScreen) setupScreen.classList.add('active');
+    }
+  });
+}
+
 function handleUnlockScorerSubmit() {
   const matchId = activeWatchingMatchId || activeBroadcastMatchId;
   const pin = unlockPinInput ? unlockPinInput.value.trim() : '';

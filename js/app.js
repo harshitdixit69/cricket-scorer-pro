@@ -764,6 +764,24 @@ $('sc-tab-inn2').addEventListener('click', () => {
   renderDetailedScorecard(store.getState());
 });
 
+// ─── Spectator UI Lock Enforcement ──────────────────────────────────
+function applySpectatorUiLock() {
+  const banner = $('spectator-mode-banner');
+  const keypadCard = document.querySelector('.keypad-card');
+  const quickStrip = $('quick-bowler-strip');
+
+  if (isSpectatorMode) {
+    document.body.classList.add('spectator-view');
+    if (banner) banner.style.display = 'flex';
+    if (keypadCard) keypadCard.style.display = 'none';
+    if (quickStrip) quickStrip.style.display = 'none';
+  } else {
+    document.body.classList.remove('spectator-view');
+    if (banner) banner.style.display = 'none';
+    if (keypadCard) keypadCard.style.display = '';
+  }
+}
+
 // ─── Master Reactive Render ─────────────────────────────────────────
 function render(state, prevState) {
   // Screen routing
@@ -792,6 +810,9 @@ function render(state, prevState) {
       renderResultScreen(state);
       break;
   }
+
+  // Enforce spectator barrier on every render
+  applySpectatorUiLock();
 }
 
 function renderTossScreen(state) {
@@ -1209,7 +1230,7 @@ function enableSpectatorMode(matchId) {
 
   // Listen to remote updates
   subscribeToLiveMatch(matchId, (remoteState, payload) => {
-    if (payload?.isEnded || payload?.status === 'MATCH_CLOSED' || remoteState?.phase === 'MATCH_ENDED' || remoteState?.phase === 'SETUP') {
+    if (payload?.isEnded || payload?.status === 'MATCH_CLOSED' || payload?.type === 'MATCH_ENDED' || remoteState?.phase === 'MATCH_ENDED') {
       console.log('[LiveSync] Match ended or closed by host.');
       handleRemoteMatchEnded();
       return;
@@ -1217,6 +1238,7 @@ function enableSpectatorMode(matchId) {
     if (remoteState) {
       if (loadingOverlay) loadingOverlay.style.display = 'none';
       store.dispatch(actions.loadMatchState(remoteState));
+      applySpectatorUiLock();
     }
   });
 }

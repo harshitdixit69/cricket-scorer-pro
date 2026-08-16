@@ -215,19 +215,19 @@ export function normalizeMatchId(raw) {
 }
 
 /**
- * Scorer PIN & Device Authorization Management
+ * Scorer PIN & Device Authorization Management (Isolated per Session/Tab)
  */
 const MATCH_AUTH_PREFIX = 'cric_match_auth_';
 let cachedRemotePins = new Map();
 
 /**
- * Register this device as the authorized host creator for a match
+ * Register this device/tab as the authorized host creator for a match
  */
 export function createHostMatch(matchId, customPin = null) {
   const normId = normalizeMatchId(matchId);
   const pin = customPin || Math.floor(1000 + Math.random() * 9000).toString();
   try {
-    localStorage.setItem(MATCH_AUTH_PREFIX + normId, JSON.stringify({
+    sessionStorage.setItem(MATCH_AUTH_PREFIX + normId, JSON.stringify({
       pin,
       isHost: true,
       createdAt: Date.now()
@@ -237,12 +237,12 @@ export function createHostMatch(matchId, customPin = null) {
 }
 
 /**
- * Retrieve the scorer PIN only if this device is authorized
+ * Retrieve the scorer PIN only if this session is authorized
  */
 export function getMatchPin(matchId) {
   const normId = normalizeMatchId(matchId);
   try {
-    const raw = localStorage.getItem(MATCH_AUTH_PREFIX + normId);
+    const raw = sessionStorage.getItem(MATCH_AUTH_PREFIX + normId);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.pin) return parsed.pin;
@@ -261,7 +261,7 @@ export function isDeviceAuthorizedScorer(matchId) {
   const normId = normalizeMatchId(matchId);
   if (!normId) return false;
   try {
-    const raw = localStorage.getItem(MATCH_AUTH_PREFIX + normId);
+    const raw = sessionStorage.getItem(MATCH_AUTH_PREFIX + normId);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && (parsed.isHost || parsed.isAuthorized)) {
@@ -276,10 +276,10 @@ export function verifyAndAuthorizeScorer(matchId, inputPin) {
   const normId = normalizeMatchId(matchId);
   const cleanInput = (inputPin || '').trim();
 
-  // Check local PIN first
+  // Check session PIN first
   let targetPin = null;
   try {
-    const raw = localStorage.getItem(MATCH_AUTH_PREFIX + normId);
+    const raw = sessionStorage.getItem(MATCH_AUTH_PREFIX + normId);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.pin) targetPin = parsed.pin;
@@ -293,7 +293,7 @@ export function verifyAndAuthorizeScorer(matchId, inputPin) {
 
   if (targetPin && cleanInput === targetPin.toString()) {
     try {
-      localStorage.setItem(MATCH_AUTH_PREFIX + normId, JSON.stringify({
+      sessionStorage.setItem(MATCH_AUTH_PREFIX + normId, JSON.stringify({
         pin: cleanInput,
         isAuthorized: true,
         authorizedAt: Date.now()
@@ -648,16 +648,22 @@ export function getShareableMatchUrl(matchId) {
 }
 
 /**
- * Active Match LocalStorage
+ * Active Match Session Storage (Isolated per Session/Tab)
  */
 export function getActiveBroadcastId() {
-  return localStorage.getItem(ACTIVE_BROADCAST_MATCH_KEY) || null;
+  try {
+    return sessionStorage.getItem(ACTIVE_BROADCAST_MATCH_KEY) || null;
+  } catch (e) {
+    return null;
+  }
 }
 
 export function setActiveBroadcastId(matchId) {
-  if (matchId) {
-    localStorage.setItem(ACTIVE_BROADCAST_MATCH_KEY, normalizeMatchId(matchId));
-  } else {
-    localStorage.removeItem(ACTIVE_BROADCAST_MATCH_KEY);
-  }
+  try {
+    if (matchId) {
+      sessionStorage.setItem(ACTIVE_BROADCAST_MATCH_KEY, normalizeMatchId(matchId));
+    } else {
+      sessionStorage.removeItem(ACTIVE_BROADCAST_MATCH_KEY);
+    }
+  } catch (e) {}
 }

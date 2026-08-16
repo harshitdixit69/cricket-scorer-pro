@@ -47,6 +47,12 @@ import {
 // ─── Store Initialization ───────────────────────────────────────────
 const store = createStore(reducer, initialState);
 
+// ─── Live Broadcasting & Spectator State ─────────────────────────────
+let isSpectatorMode = false;
+let activeBroadcastMatchId = getActiveBroadcastId() || generateMatchId();
+setActiveBroadcastId(activeBroadcastMatchId);
+let activeWatchingMatchId = null;
+
 // ─── DOM Helper ─────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
 const $$ = (sel) => document.querySelectorAll(sel);
@@ -1063,10 +1069,6 @@ store.subscribe(render);
 render(store.getState(), null);
 
 // ─── Live Broadcasting & Firebase Realtime Synchronization ─────────
-let activeBroadcastMatchId = getActiveBroadcastId() || generateMatchId();
-setActiveBroadcastId(activeBroadcastMatchId);
-let isSpectatorMode = false;
-
 // Connection Status Monitor
 onConnectionStatusChange((status, label) => {
   const statusEl = $('spectator-status-text');
@@ -1074,8 +1076,6 @@ onConnectionStatusChange((status, label) => {
     statusEl.textContent = status === 'connected' ? '● Connected to Live Match Stream' : `● ${label}`;
   }
 });
-
-let activeWatchingMatchId = null;
 
 // Live Spectator Presence & Reactions
 function updateViewerCount(count) {
